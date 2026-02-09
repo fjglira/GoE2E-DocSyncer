@@ -1,0 +1,56 @@
+= Docker Image Build & Test Guide
+:toc:
+:toc-placement: auto
+
+This document describes how to build and test Docker images.
+
+== Building the Docker Image
+
+=== Basic Build
+
+Build the standard Docker image:
+
+[source,go-e2e-step,step-name="Build Docker image"]
+----
+docker build -t myapp:latest .
+----
+
+=== Production Build
+
+Build the optimized production image:
+
+[source,go-e2e-step,step-name="Build production image",timeout="5m"]
+----
+docker build -f Dockerfile.prod -t myapp:prod --target production .
+----
+
+== Testing the Image
+
+=== Run Container
+
+Start the container for integration testing:
+
+[source,go-e2e-step,describe="Container Integration Tests"]
+----
+docker run -d -p 8080:8080 --name myapp-test myapp:latest
+----
+
+=== Health Check
+
+Verify the application is healthy:
+
+[source,go-e2e-step,expected="0",timeout="10s"]
+----
+sleep 3
+curl -f http://localhost:8080/health
+----
+
+=== Cleanup
+
+Remove the test container:
+
+[source,go-e2e-step,step-name="Remove test container"]
+----
+docker stop myapp-test
+docker rm myapp-test
+----

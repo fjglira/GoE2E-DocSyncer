@@ -1,0 +1,155 @@
+# =============================================================================
+# docsyncer.yaml — GoE2E-DocSyncer Configuration
+# =============================================================================
+# Place this file in the root of your Go project.
+# Run `docsyncer generate` to produce Ginkgo E2E test files from your docs.
+# Run `docsyncer validate` to check this config for errors.
+# =============================================================================
+
+# =============================================================================
+# Input Configuration
+# Where to find documentation files
+# =============================================================================
+input:
+  # Directories to scan for documentation files (relative to project root)
+  directories:
+    - "docs"
+
+  # File patterns to include (glob syntax)
+  include:
+    - "*.md"
+    - "*.adoc"
+    - "*.asciidoc"
+    - "*.txt"
+
+  # Patterns/directories to exclude from scanning
+  exclude:
+    - "vendor/**"
+    - "node_modules/**"
+    - "**/CHANGELOG.md"
+    - "**/LICENSE*"
+
+  # Search directories recursively (default: true)
+  recursive: true
+
+# =============================================================================
+# Tag Configuration
+# Define which markers identify test content inside documents
+# =============================================================================
+tags:
+  # Code fence language tags that identify test steps.
+  #   Markdown:  ```go-e2e-step
+  #   AsciiDoc:  [source,go-e2e-step]
+  #   Plaintext: Uses plaintext_patterns below
+  step_tags:
+    - "go-e2e-step"
+
+  # Markers that define test boundaries (where a test starts and ends)
+  test_start:
+    # Comment-based markers — works in any text format
+    comment_markers:
+      - "<!-- test-start:"     # HTML comment style (Markdown)
+      - "// test-start:"      # C/Go comment style
+      - "# test-start:"       # Shell/Python comment style
+    # Attribute-based marker (inside code fence attributes)
+    attribute_key: "init"
+
+  test_end:
+    comment_markers:
+      - "<!-- test-end"
+      - "// test-end"
+      - "# test-end"
+    attribute_key: "end"
+
+  # Recognized attribute names inside code fence metadata
+  # Each key maps to a list of synonyms the parser should recognize
+  attributes:
+    step_name: ["step-name", "name"]
+    timeout: ["timeout"]
+    expected_exit_code: ["expected", "exit-code"]
+    describe: ["describe"]
+    context: ["context"]
+    skip_on_failure: ["skip-on-failure"]
+    template: ["template"]
+
+# =============================================================================
+# Plaintext / Generic Parser Patterns
+# For file formats without native code fence syntax (e.g., .txt, .rst, .rtf)
+# =============================================================================
+plaintext_patterns:
+  # Regex to match block start. Capture groups:
+  #   group 1 = tag name
+  #   group 2 = optional attributes string
+  block_start: '^\s*@begin\((\S+)(?:\s+(.*))?\)\s*$'
+  # Regex to match block end
+  block_end: '^\s*@end\s*$'
+
+# =============================================================================
+# Output Configuration
+# Where and how to write generated test files
+# =============================================================================
+output:
+  # Output directory for generated test files (relative to project root)
+  directory: "tests/e2e/generated"
+
+  # Generated file naming pattern
+  file_prefix: "generated_"
+  file_suffix: "_test.go"
+
+  # Go package name for generated test files
+  package_name: "e2e_generated"
+
+  # Remove all previously generated files before generating new ones
+  clean_before_generate: true
+
+# =============================================================================
+# Template Configuration
+# =============================================================================
+templates:
+  # Directory containing .tmpl template files
+  directory: "templates"
+
+  # Default template name (filename without .tmpl extension)
+  default: "ginkgo_default"
+
+  # Allow individual tests to override the template via attributes
+  allow_override: true
+
+# =============================================================================
+# Command Conversion Settings
+# Controls how shell commands are converted to Go test code
+# =============================================================================
+commands:
+  # Default timeout for commands without an explicit timeout attribute
+  default_timeout: "30s"
+
+  # Default expected exit code
+  default_expected_exit_code: 0
+
+  # Security: patterns that will cause command conversion to be rejected
+  blocked_patterns:
+    - "rm -rf /"
+    - "mkfs"
+    - "dd if="
+    - "format c:"
+    - "> /dev/sd"
+
+  # Shell used for complex commands (with pipes, redirects, etc.)
+  shell: "/bin/sh"
+  shell_flag: "-c"
+
+# =============================================================================
+# Logging
+# =============================================================================
+logging:
+  # Log level: debug, info, warn, error
+  level: "info"
+
+  # Optional: also write logs to a file
+  file: ""
+
+# =============================================================================
+# Behavior
+# =============================================================================
+# Parse and convert but don't write files (useful for CI validation)
+dry_run: false

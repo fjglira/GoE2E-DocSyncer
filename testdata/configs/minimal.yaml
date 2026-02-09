@@ -1,0 +1,14 @@
+# Minimal configuration — only required fields
+input:
+  directories:
+    - "docs"
+  include:
+    - "*.md"
+
+tags:
+  step_tags:
+    - "go-e2e-step"
+
+output:
+  directory: "tests/e2e/generated"
+  package_name: "e2e_generated"

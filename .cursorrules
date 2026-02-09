@@ -1,0 +1,57 @@
+# GoE2E-DocSyncer — Cursor AI Rules
+# These rules guide AI-assisted development for this project.
+
+## Project Context
+This is a Go CLI tool called "docsyncer" that generates Ginkgo E2E test files
+from text-based documentation. It supports Markdown, AsciiDoc, and any generic
+text format via configurable YAML.
+
+## Architecture Rules
+- Follow Clean Architecture: domain → config → parser/converter/template → generator → cli
+- All core components MUST be behind interfaces (Parser, Converter, TemplateEngine, Scanner)
+- Use dependency injection via constructor functions — NO global state
+- Parser implementations register via the ParserRegistry pattern
+- Domain types live in `internal/domain/` and have ZERO external dependencies
+- Config loading lives in `internal/config/` and uses `gopkg.in/yaml.v3`
+
+## Go Conventions
+- Wrap all errors with context: `fmt.Errorf("doing X: %w", err)`
+- Exported functions MUST have GoDoc comments
+- Use `context.Context` for cancellation and deadlines
+- Prefer standard library over external packages
+- Run `go fmt` and `goimports` on all generated code
+- Never use `init()` functions except for cobra CLI command registration
+- Use table-driven tests with Ginkgo `DescribeTable` / `Entry`
+
+## Testing Rules
+- ALL tests use Ginkgo/Gomega (BDD style)
+- Test files go alongside source files (e.g., `parser_test.go` next to `parser.go`)
+- Integration test fixtures go in `testdata/`
+- Mock interfaces, not concrete types
+- Separate unit tests from integration tests using Ginkgo labels
+
+## File & Package Naming
+- CLI binary: `docsyncer` (in `cmd/docsyncer/`)
+- Internal packages: `config`, `domain`, `parser`, `converter`, `template`, `generator`, `scanner`, `cli`
+- Generated test files: `generated_<source>_test.go`
+- Template files: `*.tmpl` in `templates/`
+
+## Configuration
+- The YAML config file is `docsyncer.yaml` in the project root
+- CLI flags can override YAML config values
+- Config validation happens in `internal/config/validate.go`
+
+## Key Dependencies
+- goldmark (Markdown parsing)
+- cobra (CLI)
+- logrus (logging)
+- yaml.v3 (config)
+- ginkgo/v2 + gomega (testing)
+
+## Common Mistakes to Avoid
+- Do NOT hardcode file extensions — use config `input.include` patterns
+- Do NOT hardcode tag names — use config `tags.step_tags`
+- Do NOT use `os.Exit()` outside of `main.go`
+- Do NOT create global variables for configuration state
+- Do NOT mix parser logic with converter logic — they are separate concerns
+- RTF files must be stripped to plaintext before parsing — do not try to parse RTF control words as content
