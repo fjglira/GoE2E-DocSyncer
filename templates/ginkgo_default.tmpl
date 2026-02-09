@@ -20,6 +20,9 @@ var _ = Describe("{{.DescribeBlock}}", func() {
 	Context("{{.ContextBlock}}", func() {
 	{{- end}}
 
+	{{- if .Tests}}
+		{{- range .Tests}}
+
 		It("{{.TestName}}", func() {
 			{{- range $i, $step := .Steps}}
 			{
@@ -32,6 +35,22 @@ var _ = Describe("{{.DescribeBlock}}", func() {
 			}
 			{{- end}}
 		})
+		{{- end}}
+	{{- else}}
+
+		It("{{.TestName}}", func() {
+			{{- range $i, $step := .Steps}}
+			{
+			{{- if $step.Name}}
+			By("{{$step.Name}}")
+			{{- else}}
+			By("Step {{add $i 1}}")
+			{{- end}}
+			{{$step.GoCode}}
+			}
+			{{- end}}
+		})
+	{{- end}}
 
 	{{- if .ContextBlock}}
 	})

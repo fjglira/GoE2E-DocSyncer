@@ -75,6 +75,40 @@ var _ = Describe("PlaintextParser", func() {
 		})
 	})
 
+	Describe("Parse sample.rtf", func() {
+		var content []byte
+
+		BeforeEach(func() {
+			var err error
+			content, err = os.ReadFile(filepath.Join("..", "..", "testdata", "plaintext", "sample.rtf"))
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should strip RTF control words and extract blocks", func() {
+			doc, err := p.Parse("sample.rtf", content, []string{"go-e2e-step"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(doc.Blocks).To(HaveLen(2))
+		})
+
+		It("should extract step-name attribute from RTF content", func() {
+			doc, err := p.Parse("sample.rtf", content, []string{"go-e2e-step"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(doc.Blocks[0].Attributes["step-name"]).To(Equal("Check cluster status"))
+		})
+
+		It("should extract command content from RTF", func() {
+			doc, err := p.Parse("sample.rtf", content, []string{"go-e2e-step"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(doc.Blocks[0].Content).To(ContainSubstring("kubectl cluster-info"))
+		})
+
+		It("should extract timeout attribute from RTF content", func() {
+			doc, err := p.Parse("sample.rtf", content, []string{"go-e2e-step"})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(doc.Blocks[1].Attributes["timeout"]).To(Equal("30s"))
+		})
+	})
+
 	It("should return error for invalid regex", func() {
 		_, err := parser.NewPlaintextParser("[invalid", `^\s*@end\s*$`)
 		Expect(err).To(HaveOccurred())

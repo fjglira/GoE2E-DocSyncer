@@ -88,6 +88,17 @@ var _ = Describe("Generator", func() {
 		Expect(string(content)).To(ContainSubstring("It"))
 	})
 
+	It("should generate multi-step.md with 2 It blocks", func() {
+		err := gen.Generate(cfg)
+		Expect(err).ToNot(HaveOccurred())
+
+		content, err := os.ReadFile(filepath.Join(outputDir, "generated_multi-step_test.go"))
+		Expect(err).ToNot(HaveOccurred())
+		contentStr := string(content)
+		Expect(contentStr).To(ContainSubstring(`It("Infrastructure provisioning"`))
+		Expect(contentStr).To(ContainSubstring(`It("Application deployment"`))
+	})
+
 	It("should respect dry-run mode", func() {
 		cfg.DryRun = true
 		err := gen.Generate(cfg)

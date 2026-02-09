@@ -15,7 +15,14 @@ import (
 // TemplateEngine renders TestSpec into Go source code strings.
 type TemplateEngine interface {
 	Render(spec domain.TestSpec, packageName string) (string, error)
+	RenderMulti(specs []domain.TestSpec, packageName string) (string, error)
 	ListTemplates() []string
+}
+
+// testCase represents a single It() block within a Describe.
+type testCase struct {
+	TestName string
+	Steps    []domain.TestStep
 }
 
 // templateData is the struct passed to templates.
@@ -27,6 +34,7 @@ type templateData struct {
 	ContextBlock  string
 	TestName      string
 	Steps         []domain.TestStep
+	Tests         []testCase
 	NeedsContext  bool
 }
 
@@ -132,6 +140,70 @@ func (e *DefaultEngine) Render(spec domain.TestSpec, packageName string) (string
 	if err != nil {
 		// Return unformatted if go/format fails (might be useful for debugging)
 		return buf.String(), domain.NewError("template", spec.SourceFile, 0,
+			"generated code failed go/format validation", err)
+	}
+
+	return string(formatted), nil
+}
+
+// RenderMulti renders multiple TestSpecs (from the same source file) into a single
+// formatted Go source string with multiple It() blocks inside one Describe().
+func (e *DefaultEngine) RenderMulti(specs []domain.TestSpec, packageName string) (string, error) {
+	if len(specs) == 0 {
+		return "", domain.NewError("template", "", 0, "no specs to render", nil)
+	}
+
+	// Use the first spec for shared fields
+	first := specs[0]
+
+	// Select template
+	tmplName := e.defaultName
+	if first.TemplateName != "" {
+		tmplName = first.TemplateName
+	}
+
+	tmpl, ok := e.templates[tmplName]
+	if !ok {
+		return "", domain.NewError("template", "", 0,
+			fmt.Sprintf("template %q not found (available: %s)", tmplName, strings.Join(e.ListTemplates(), ", ")), nil)
+	}
+
+	// Build test cases and check for context usage
+	needsContext := false
+	var tests []testCase
+	for _, spec := range specs {
+		for _, step := range spec.Steps {
+			if strings.Contains(step.GoCode, "context.WithTimeout") {
+				needsContext = true
+			}
+		}
+		tests = append(tests, testCase{
+			TestName: spec.TestName,
+			Steps:    spec.Steps,
+		})
+	}
+
+	data := templateData{
+		PackageName:   packageName,
+		SourceFile:    first.SourceFile,
+		SourceType:    first.SourceType,
+		DescribeBlock: first.DescribeBlock,
+		ContextBlock:  first.ContextBlock,
+		TestName:      first.TestName,
+		Steps:         first.Steps,
+		Tests:         tests,
+		NeedsContext:  needsContext,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", domain.NewError("template", first.SourceFile, 0, "failed to execute template", err)
+	}
+
+	// Format with go/format
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return buf.String(), domain.NewError("template", first.SourceFile, 0,
 			"generated code failed go/format validation", err)
 	}
 

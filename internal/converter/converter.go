@@ -26,6 +26,7 @@ func NewConverter(cmdCfg *config.CommandConfig) *DefaultConverter {
 }
 
 // Convert transforms a ParsedDocument into a slice of TestSpecs.
+// Blocks are grouped by their TestGroup field. Each group produces a separate TestSpec.
 func (c *DefaultConverter) Convert(doc *domain.ParsedDocument, tagCfg *config.TagConfig) ([]domain.TestSpec, error) {
 	if len(doc.Blocks) == 0 {
 		return nil, nil
@@ -33,52 +34,73 @@ func (c *DefaultConverter) Convert(doc *domain.ParsedDocument, tagCfg *config.Ta
 
 	// Determine describe block from the first heading
 	describeBlock := inferDescribeBlock(doc)
+	contextBlock := inferContextBlock(doc)
 
-	// Check for test-start metadata (grouped tests)
-	testName := doc.Metadata["test-start"]
-	if testName == "" {
-		// Use filename as test name
-		base := filepath.Base(doc.FilePath)
-		ext := filepath.Ext(base)
-		testName = strings.TrimSuffix(base, ext)
+	// Group blocks by TestGroup, maintaining insertion order
+	var groupOrder []string
+	groupBlocks := make(map[string][]domain.CodeBlock)
+	for _, block := range doc.Blocks {
+		group := block.TestGroup
+		if _, seen := groupBlocks[group]; !seen {
+			groupOrder = append(groupOrder, group)
+		}
+		groupBlocks[group] = append(groupBlocks[group], block)
 	}
 
-	// Convert blocks to steps
-	var steps []domain.TestStep
-	for i, block := range doc.Blocks {
-		// Validate command security
-		if err := ValidateCommand(block.Content, c.cmdConfig.BlockedPatterns); err != nil {
-			return nil, domain.NewError("convert", doc.FilePath, block.LineNumber, err.Error(), nil)
+	// Fallback test name from filename
+	base := filepath.Base(doc.FilePath)
+	ext := filepath.Ext(base)
+	fileTestName := strings.TrimSuffix(base, ext)
+
+	var specs []domain.TestSpec
+	for _, group := range groupOrder {
+		blocks := groupBlocks[group]
+
+		// Convert blocks to steps
+		var steps []domain.TestStep
+		for i, block := range blocks {
+			// Validate command security
+			if err := ValidateCommand(block.Content, c.cmdConfig.BlockedPatterns); err != nil {
+				return nil, domain.NewError("convert", doc.FilePath, block.LineNumber, err.Error(), nil)
+			}
+
+			step := c.blockToStep(block, i, tagCfg)
+			steps = append(steps, step)
 		}
 
-		step := c.blockToStep(block, i, tagCfg)
-		steps = append(steps, step)
-	}
+		// Determine test name: use group name if set, otherwise fallback to filename
+		testName := group
+		if testName == "" {
+			testName = fileTestName
+		}
 
-	spec := domain.TestSpec{
-		SourceFile:    doc.FilePath,
-		SourceType:    doc.FileType,
-		TestName:      testName,
-		DescribeBlock: describeBlock,
-		ContextBlock:  inferContextBlock(doc),
-		Steps:         steps,
-		TemplateName:  "",
-	}
+		spec := domain.TestSpec{
+			SourceFile:    doc.FilePath,
+			SourceType:    doc.FileType,
+			TestName:      testName,
+			DescribeBlock: describeBlock,
+			ContextBlock:  contextBlock,
+			Steps:         steps,
+			TemplateName:  "",
+		}
 
-	// Check for template override in any block attribute
-	if tagCfg.Attributes != nil {
-		templateKeys := tagCfg.Attributes["template"]
-		for _, block := range doc.Blocks {
-			for _, key := range templateKeys {
-				if val, ok := block.Attributes[key]; ok {
-					spec.TemplateName = val
-					break
+		// Check for template override in any block attribute
+		if tagCfg.Attributes != nil {
+			templateKeys := tagCfg.Attributes["template"]
+			for _, block := range blocks {
+				for _, key := range templateKeys {
+					if val, ok := block.Attributes[key]; ok {
+						spec.TemplateName = val
+						break
+					}
 				}
 			}
 		}
+
+		specs = append(specs, spec)
 	}
 
-	return []domain.TestSpec{spec}, nil
+	return specs, nil
 }
 
 // blockToStep converts a single CodeBlock to a TestStep.

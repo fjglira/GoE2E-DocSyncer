@@ -124,22 +124,41 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 
 	g.log.Infof("Generated %d test spec(s)", len(allSpecs))
 
-	// Step 4: Ensure output directory exists
+	// Step 4: Group specs by source file so multiple test groups from one doc
+	// are rendered together in a single output file.
+	var sourceOrder []string
+	specsBySource := make(map[string][]domain.TestSpec)
+	for _, spec := range allSpecs {
+		if _, seen := specsBySource[spec.SourceFile]; !seen {
+			sourceOrder = append(sourceOrder, spec.SourceFile)
+		}
+		specsBySource[spec.SourceFile] = append(specsBySource[spec.SourceFile], spec)
+	}
+
+	// Step 5: Ensure output directory exists
 	if !cfg.DryRun {
 		if err := os.MkdirAll(cfg.Output.Directory, 0755); err != nil {
 			return domain.NewError("write", cfg.Output.Directory, 0, "failed to create output directory", err)
 		}
 	}
 
-	// Step 5: Render each TestSpec and write output
-	for _, spec := range allSpecs {
-		rendered, err := g.engine.Render(spec, cfg.Output.PackageName)
+	// Step 6: Render and write output, one file per source document
+	for _, sourceFile := range sourceOrder {
+		specs := specsBySource[sourceFile]
+
+		var rendered string
+		var err error
+		if len(specs) > 1 {
+			rendered, err = g.engine.RenderMulti(specs, cfg.Output.PackageName)
+		} else {
+			rendered, err = g.engine.Render(specs[0], cfg.Output.PackageName)
+		}
 		if err != nil {
 			return err
 		}
 
 		// Build output filename
-		outputFile := buildOutputFilename(spec.SourceFile, cfg.Output)
+		outputFile := buildOutputFilename(sourceFile, cfg.Output)
 		outputPath := filepath.Join(cfg.Output.Directory, outputFile)
 
 		if cfg.DryRun {

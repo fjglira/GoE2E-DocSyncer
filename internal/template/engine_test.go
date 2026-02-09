@@ -111,6 +111,73 @@ var _ = Describe("TemplateEngine", func() {
 		})
 	})
 
+	Describe("RenderMulti", func() {
+		It("should render multiple specs into a single file with multiple It blocks", func() {
+			specs := []domain.TestSpec{
+				{
+					SourceFile:    "multi.md",
+					SourceType:    "markdown",
+					TestName:      "Group A",
+					DescribeBlock: "My Feature",
+					Steps: []domain.TestStep{
+						{
+							Name:   "Step A1",
+							GoCode: `cmd := exec.Command("echo", "a1")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+						},
+					},
+				},
+				{
+					SourceFile:    "multi.md",
+					SourceType:    "markdown",
+					TestName:      "Group B",
+					DescribeBlock: "My Feature",
+					Steps: []domain.TestStep{
+						{
+							Name:   "Step B1",
+							GoCode: `cmd := exec.Command("echo", "b1")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+						},
+					},
+				},
+			}
+
+			result, err := engine.RenderMulti(specs, "e2e_test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(ContainSubstring(`Describe("My Feature"`))
+			Expect(result).To(ContainSubstring(`It("Group A"`))
+			Expect(result).To(ContainSubstring(`It("Group B"`))
+			Expect(result).To(ContainSubstring(`By("Step A1")`))
+			Expect(result).To(ContainSubstring(`By("Step B1")`))
+		})
+
+		It("should detect context imports across all specs", func() {
+			specs := []domain.TestSpec{
+				{
+					SourceFile:    "multi.md",
+					SourceType:    "markdown",
+					TestName:      "No timeout",
+					DescribeBlock: "Feature",
+					Steps: []domain.TestStep{
+						{Name: "Simple", GoCode: `cmd := exec.Command("echo")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`},
+					},
+				},
+				{
+					SourceFile:    "multi.md",
+					SourceType:    "markdown",
+					TestName:      "Has timeout",
+					DescribeBlock: "Feature",
+					Steps: []domain.TestStep{
+						{Name: "With timeout", GoCode: `ctx, cancel := context.WithTimeout(context.Background(), dur)` + "\n" + `defer cancel()` + "\n" + `cmd := exec.CommandContext(ctx, "echo")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`},
+					},
+				},
+			}
+
+			result, err := engine.RenderMulti(specs, "e2e_test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(ContainSubstring(`"context"`))
+			Expect(result).To(ContainSubstring(`"time"`))
+		})
+	})
+
 	It("should return error for nonexistent template directory", func() {
 		_, err := tmpl.NewEngine("nonexistent_dir", "default")
 		Expect(err).To(HaveOccurred())

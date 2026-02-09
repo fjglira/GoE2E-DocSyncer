@@ -2,11 +2,56 @@ package parser
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
 )
+
+// rtfControlWord matches RTF control words like \b, \fonttbl, \f0, etc.
+var rtfControlWord = regexp.MustCompile(`\\[a-z]+[0-9]*\s?`)
+
+// rtfSpecialChars matches RTF special character sequences like \'.
+var rtfSpecialChars = regexp.MustCompile(`\\'[0-9a-fA-F]{2}`)
+
+// stripRTF removes RTF control words and formatting from raw RTF content,
+// preserving the actual text content.
+func stripRTF(content []byte) []byte {
+	s := string(content)
+
+	// Remove {\rtfN header — match the opening {\rtf1 or {\rtf and its parameters up to the first newline
+	s = regexp.MustCompile(`\{\\rtf[0-9]*[^\n]*\n?`).ReplaceAllString(s, "")
+
+	// Remove RTF groups like {\fonttbl...}, {\colortbl...}, {\info...} etc.
+	// These are nested groups that contain no user-visible text.
+	s = regexp.MustCompile(`\{\\(?:fonttbl|colortbl|stylesheet|info|generator|\\?\*)[^{}]*(?:\{[^{}]*\}[^{}]*)*\}`).ReplaceAllString(s, "")
+
+	// Remove hex-encoded special characters
+	s = rtfSpecialChars.ReplaceAllString(s, "")
+
+	// Convert \par to newlines BEFORE stripping other control words
+	s = regexp.MustCompile(`\\par\b\s?`).ReplaceAllString(s, "\n")
+
+	// Convert \line to newlines
+	s = regexp.MustCompile(`\\line\b\s?`).ReplaceAllString(s, "\n")
+
+	// Remove remaining control words (e.g., \b, \pard, \f0, \fs24)
+	s = rtfControlWord.ReplaceAllString(s, "")
+
+	// Remove remaining braces
+	s = strings.ReplaceAll(s, "{", "")
+	s = strings.ReplaceAll(s, "}", "")
+
+	// Clean up excessive blank lines
+	for strings.Contains(s, "\n\n\n") {
+		s = strings.ReplaceAll(s, "\n\n\n", "\n\n")
+	}
+
+	s = strings.TrimSpace(s)
+
+	return []byte(s)
+}
 
 // PlaintextParser parses generic text files using configurable regex patterns.
 type PlaintextParser struct {
@@ -38,6 +83,11 @@ func (p *PlaintextParser) SupportedExtensions() []string {
 
 // Parse parses a plaintext document using regex patterns to find tagged blocks.
 func (p *PlaintextParser) Parse(filePath string, content []byte, tags []string) (*domain.ParsedDocument, error) {
+	// Strip RTF control words if this is an RTF file
+	if filepath.Ext(filePath) == ".rtf" {
+		content = stripRTF(content)
+	}
+
 	lines := strings.Split(string(content), "\n")
 
 	tagSet := make(map[string]bool)

@@ -106,5 +106,29 @@ var _ = Describe("MarkdownParser", func() {
 				Expect(block.Tag).To(Equal("go-e2e-step"))
 			}
 		})
+
+		It("should assign TestGroup from test-start markers", func() {
+			doc, err := p.Parse("multi-step.md", content, []string{"go-e2e-step"})
+			Expect(err).ToNot(HaveOccurred())
+
+			// First 2 blocks belong to "Infrastructure provisioning"
+			Expect(doc.Blocks[0].TestGroup).To(Equal("Infrastructure provisioning"))
+			Expect(doc.Blocks[1].TestGroup).To(Equal("Infrastructure provisioning"))
+
+			// Next 3 blocks belong to "Application deployment"
+			Expect(doc.Blocks[2].TestGroup).To(Equal("Application deployment"))
+			Expect(doc.Blocks[3].TestGroup).To(Equal("Application deployment"))
+			Expect(doc.Blocks[4].TestGroup).To(Equal("Application deployment"))
+		})
+
+		It("should clear TestGroup after test-end", func() {
+			doc, err := p.Parse("multi-step.md", content, []string{"go-e2e-step"})
+			Expect(err).ToNot(HaveOccurred())
+			// All blocks in multi-step.md are within test-start/test-end pairs,
+			// so none should have an empty TestGroup
+			for _, block := range doc.Blocks {
+				Expect(block.TestGroup).ToNot(BeEmpty())
+			}
+		})
 	})
 })

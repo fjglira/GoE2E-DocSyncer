@@ -78,12 +78,12 @@ var _ = Describe("Converter", func() {
 			Expect(specs).To(BeNil())
 		})
 
-		It("should use test-start metadata as test name", func() {
+		It("should use TestGroup as test name when set", func() {
 			doc := &domain.ParsedDocument{
 				FilePath: "test.md",
 				FileType: "markdown",
 				Blocks: []domain.CodeBlock{
-					{Tag: "go-e2e-step", Content: "echo hello", Attributes: map[string]string{}},
+					{Tag: "go-e2e-step", Content: "echo hello", Attributes: map[string]string{}, TestGroup: "My Custom Test"},
 				},
 				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
 				Metadata: map[string]string{"test-start": "My Custom Test"},
@@ -92,6 +92,44 @@ var _ = Describe("Converter", func() {
 			specs, err := conv.Convert(doc, tagCfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(specs[0].TestName).To(Equal("My Custom Test"))
+		})
+
+		It("should produce multiple TestSpecs for different TestGroups", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "multi.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{Tag: "go-e2e-step", Content: "echo step1", Attributes: map[string]string{}, TestGroup: "Group A"},
+					{Tag: "go-e2e-step", Content: "echo step2", Attributes: map[string]string{}, TestGroup: "Group A"},
+					{Tag: "go-e2e-step", Content: "echo step3", Attributes: map[string]string{}, TestGroup: "Group B"},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs).To(HaveLen(2))
+			Expect(specs[0].TestName).To(Equal("Group A"))
+			Expect(specs[0].Steps).To(HaveLen(2))
+			Expect(specs[1].TestName).To(Equal("Group B"))
+			Expect(specs[1].Steps).To(HaveLen(1))
+		})
+
+		It("should use filename for ungrouped blocks", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{Tag: "go-e2e-step", Content: "echo hello", Attributes: map[string]string{}},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs[0].TestName).To(Equal("test"))
 		})
 
 		It("should reject blocked commands", func() {

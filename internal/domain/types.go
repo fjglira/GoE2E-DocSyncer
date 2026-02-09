@@ -16,6 +16,7 @@ type CodeBlock struct {
 	LineNumber int               // 1-based line number in source
 	Attributes map[string]string // Key-value attributes from the fence info
 	Context    string            // Nearest heading / section title
+	TestGroup  string            // test-start group name (empty if ungrouped)
 }
 
 // Heading represents a document heading for context inference.

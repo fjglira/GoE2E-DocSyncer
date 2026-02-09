@@ -44,6 +44,7 @@ func (p *MarkdownParser) Parse(filePath string, content []byte, tags []string) (
 
 	// Walk the AST to extract headings and code blocks
 	var currentHeading string
+	var currentTestGroup string
 	err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -101,6 +102,7 @@ func (p *MarkdownParser) Parse(filePath string, content []byte, tags []string) (
 					LineNumber: lineNumber(content, node.Lines().At(0).Start),
 					Attributes: attrs,
 					Context:    currentHeading,
+					TestGroup:  currentTestGroup,
 				}
 				parsed.Blocks = append(parsed.Blocks, block)
 			}
@@ -119,7 +121,11 @@ func (p *MarkdownParser) Parse(filePath string, content []byte, tags []string) (
 				name := strings.TrimPrefix(htmlText, "<!-- test-start:")
 				name = strings.TrimSuffix(name, "-->")
 				name = strings.TrimSpace(name)
+				currentTestGroup = name
+				// Keep backward-compatible metadata (stores the last seen test-start)
 				parsed.Metadata["test-start"] = name
+			} else if strings.HasPrefix(htmlText, "<!-- test-end") {
+				currentTestGroup = ""
 			}
 		}
 
