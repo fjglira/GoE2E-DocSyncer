@@ -133,7 +133,10 @@ func (p *MarkdownParser) Parse(filePath string, content []byte, tags []string) (
 	})
 
 	if err != nil {
-		return nil, domain.NewError("parse", filePath, 0, "failed to walk markdown AST", err)
+		return nil, domain.NewErrorWithSuggestion("parse", filePath, 0,
+			"failed to walk markdown AST",
+			"check the markdown file for syntax issues — ensure fenced code blocks use triple backticks",
+			err)
 	}
 
 	return parsed, nil

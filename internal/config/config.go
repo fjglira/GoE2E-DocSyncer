@@ -76,12 +76,18 @@ type LoggingConfig struct {
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, domain.NewError("config", path, 0, "failed to read config file", err)
+		return nil, domain.NewErrorWithSuggestion("config", path, 0,
+			"failed to read config file",
+			"run 'docsyncer init' to create a default configuration or use --config to specify a different path",
+			err)
 	}
 
 	cfg := DefaultConfig()
 	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return nil, domain.NewError("config", path, 0, "failed to parse config file", err)
+		return nil, domain.NewErrorWithSuggestion("config", path, 0,
+			"failed to parse config file",
+			"check YAML syntax — ensure proper indentation and no tab characters",
+			err)
 	}
 
 	return cfg, nil

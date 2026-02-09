@@ -64,7 +64,10 @@ func NewEngine(templateDir string, defaultTemplate string) (*DefaultEngine, erro
 func (e *DefaultEngine) loadTemplates() error {
 	entries, err := os.ReadDir(e.templateDir)
 	if err != nil {
-		return domain.NewError("template", e.templateDir, 0, "failed to read template directory", err)
+		return domain.NewErrorWithSuggestion("template", e.templateDir, 0,
+			"failed to read template directory",
+			"ensure the templates directory exists and contains .tmpl files — check templates.directory in docsyncer.yaml",
+			err)
 	}
 
 	funcMap := CustomFuncMap()
@@ -83,14 +86,20 @@ func (e *DefaultEngine) loadTemplates() error {
 		name := strings.TrimSuffix(entry.Name(), ".tmpl")
 		tmpl, err := template.New(name).Funcs(funcMap).Parse(string(content))
 		if err != nil {
-			return domain.NewError("template", path, 0, "failed to parse template", err)
+			return domain.NewErrorWithSuggestion("template", path, 0,
+				"failed to parse template",
+				"check Go template syntax — ensure all {{}} blocks are properly closed and function names are valid",
+				err)
 		}
 
 		e.templates[name] = tmpl
 	}
 
 	if len(e.templates) == 0 {
-		return domain.NewError("template", e.templateDir, 0, "no templates found", nil)
+		return domain.NewErrorWithSuggestion("template", e.templateDir, 0,
+			"no templates found",
+			"add at least one .tmpl file to the templates directory — see templates/ginkgo_default.tmpl for an example",
+			nil)
 	}
 
 	return nil
@@ -106,8 +115,10 @@ func (e *DefaultEngine) Render(spec domain.TestSpec, packageName string) (string
 
 	tmpl, ok := e.templates[tmplName]
 	if !ok {
-		return "", domain.NewError("template", "", 0,
-			fmt.Sprintf("template %q not found (available: %s)", tmplName, strings.Join(e.ListTemplates(), ", ")), nil)
+		return "", domain.NewErrorWithSuggestion("template", "", 0,
+			fmt.Sprintf("template %q not found (available: %s)", tmplName, strings.Join(e.ListTemplates(), ", ")),
+			"check templates.default in docsyncer.yaml or ensure the .tmpl file exists in the templates directory",
+			nil)
 	}
 
 	// Determine if any step uses context/timeout
@@ -132,15 +143,20 @@ func (e *DefaultEngine) Render(spec domain.TestSpec, packageName string) (string
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", domain.NewError("template", spec.SourceFile, 0, "failed to execute template", err)
+		return "", domain.NewErrorWithSuggestion("template", spec.SourceFile, 0,
+			"failed to execute template",
+			"check the template syntax — the template may reference fields that don't exist in the data model",
+			err)
 	}
 
 	// Format with go/format
 	formatted, err := format.Source(buf.Bytes())
 	if err != nil {
 		// Return unformatted if go/format fails (might be useful for debugging)
-		return buf.String(), domain.NewError("template", spec.SourceFile, 0,
-			"generated code failed go/format validation", err)
+		return buf.String(), domain.NewErrorWithSuggestion("template", spec.SourceFile, 0,
+			"generated code failed go/format validation",
+			"the template may produce invalid Go syntax — check template output with --dry-run --verbose",
+			err)
 	}
 
 	return string(formatted), nil
@@ -164,8 +180,10 @@ func (e *DefaultEngine) RenderMulti(specs []domain.TestSpec, packageName string)
 
 	tmpl, ok := e.templates[tmplName]
 	if !ok {
-		return "", domain.NewError("template", "", 0,
-			fmt.Sprintf("template %q not found (available: %s)", tmplName, strings.Join(e.ListTemplates(), ", ")), nil)
+		return "", domain.NewErrorWithSuggestion("template", "", 0,
+			fmt.Sprintf("template %q not found (available: %s)", tmplName, strings.Join(e.ListTemplates(), ", ")),
+			"check templates.default in docsyncer.yaml or ensure the .tmpl file exists in the templates directory",
+			nil)
 	}
 
 	// Build test cases and check for context usage
@@ -197,14 +215,19 @@ func (e *DefaultEngine) RenderMulti(specs []domain.TestSpec, packageName string)
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", domain.NewError("template", first.SourceFile, 0, "failed to execute template", err)
+		return "", domain.NewErrorWithSuggestion("template", first.SourceFile, 0,
+			"failed to execute template",
+			"check the template syntax — the template may reference fields that don't exist in the data model",
+			err)
 	}
 
 	// Format with go/format
 	formatted, err := format.Source(buf.Bytes())
 	if err != nil {
-		return buf.String(), domain.NewError("template", first.SourceFile, 0,
-			"generated code failed go/format validation", err)
+		return buf.String(), domain.NewErrorWithSuggestion("template", first.SourceFile, 0,
+			"generated code failed go/format validation",
+			"the template may produce invalid Go syntax — check template output with --dry-run --verbose",
+			err)
 	}
 
 	return string(formatted), nil

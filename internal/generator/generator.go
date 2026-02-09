@@ -53,7 +53,10 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 	if cfg.Output.CleanBeforeGenerate && !cfg.DryRun {
 		g.log.Debugf("Cleaning output directory: %s", cfg.Output.Directory)
 		if err := cleanOutputDir(cfg.Output.Directory); err != nil {
-			return domain.NewError("write", cfg.Output.Directory, 0, "failed to clean output directory", err)
+			return domain.NewErrorWithSuggestion("write", cfg.Output.Directory, 0,
+				"failed to clean output directory",
+				"check file permissions or set output.clean_before_generate to false in docsyncer.yaml",
+				err)
 		}
 	}
 
@@ -84,7 +87,10 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		// Read file content
 		content, err := os.ReadFile(filePath)
 		if err != nil {
-			return domain.NewError("parse", filePath, 0, "failed to read file", err)
+			return domain.NewErrorWithSuggestion("parse", filePath, 0,
+				"failed to read file",
+				"check that the file exists and has read permissions",
+				err)
 		}
 
 		// Select parser based on file extension
@@ -138,7 +144,10 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 	// Step 5: Ensure output directory exists
 	if !cfg.DryRun {
 		if err := os.MkdirAll(cfg.Output.Directory, 0755); err != nil {
-			return domain.NewError("write", cfg.Output.Directory, 0, "failed to create output directory", err)
+			return domain.NewErrorWithSuggestion("write", cfg.Output.Directory, 0,
+				"failed to create output directory",
+				"check that the parent directory exists and has write permissions",
+				err)
 		}
 	}
 
@@ -169,7 +178,10 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 
 		g.log.Infof("Writing: %s", outputPath)
 		if err := os.WriteFile(outputPath, []byte(rendered), 0644); err != nil {
-			return domain.NewError("write", outputPath, 0, "failed to write output file", err)
+			return domain.NewErrorWithSuggestion("write", outputPath, 0,
+				"failed to write output file",
+				"check disk space and write permissions for the output directory",
+				err)
 		}
 	}
 

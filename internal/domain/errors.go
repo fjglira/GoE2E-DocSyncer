@@ -8,6 +8,7 @@ type DocSyncerError struct {
 	File       string
 	LineNumber int
 	Message    string
+	Suggestion string // Actionable hint for the user
 	Cause      error
 }
 
@@ -23,6 +24,9 @@ func (e *DocSyncerError) Error() string {
 	if e.Cause != nil {
 		s += fmt.Sprintf(": %v", e.Cause)
 	}
+	if e.Suggestion != "" {
+		s += fmt.Sprintf("\n  suggestion: %s", e.Suggestion)
+	}
 	return s
 }
 
@@ -37,6 +41,18 @@ func NewError(phase, file string, line int, message string, cause error) *DocSyn
 		File:       file,
 		LineNumber: line,
 		Message:    message,
+		Cause:      cause,
+	}
+}
+
+// NewErrorWithSuggestion creates a DocSyncerError with an actionable suggestion.
+func NewErrorWithSuggestion(phase, file string, line int, message, suggestion string, cause error) *DocSyncerError {
+	return &DocSyncerError{
+		Phase:      phase,
+		File:       file,
+		LineNumber: line,
+		Message:    message,
+		Suggestion: suggestion,
 		Cause:      cause,
 	}
 }

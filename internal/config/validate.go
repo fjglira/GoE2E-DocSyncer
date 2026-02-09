@@ -14,40 +14,40 @@ func Validate(cfg *Config) error {
 
 	// Input validation
 	if len(cfg.Input.Directories) == 0 {
-		errs = append(errs, "input.directories must not be empty")
+		errs = append(errs, "input.directories must not be empty — add at least one directory (e.g. \"docs\")")
 	}
 	if len(cfg.Input.Include) == 0 {
-		errs = append(errs, "input.include must not be empty")
+		errs = append(errs, "input.include must not be empty — add file patterns (e.g. \"*.md\")")
 	}
 
 	// Tags validation
 	if len(cfg.Tags.StepTags) == 0 {
-		errs = append(errs, "tags.step_tags must not be empty")
+		errs = append(errs, "tags.step_tags must not be empty — add at least one tag (e.g. \"go-e2e-step\")")
 	}
 
 	// Output validation
 	if cfg.Output.Directory == "" {
-		errs = append(errs, "output.directory must not be empty")
+		errs = append(errs, "output.directory must not be empty — set to e.g. \"tests/e2e/generated\"")
 	}
 	if cfg.Output.PackageName == "" {
-		errs = append(errs, "output.package_name must not be empty")
+		errs = append(errs, "output.package_name must not be empty — set to a valid Go package name (e.g. \"e2e_generated\")")
 	}
 	if cfg.Output.FileSuffix == "" {
-		errs = append(errs, "output.file_suffix must not be empty")
+		errs = append(errs, "output.file_suffix must not be empty — set to e.g. \"_test.go\"")
 	}
-	if !strings.HasSuffix(cfg.Output.FileSuffix, ".go") {
-		errs = append(errs, "output.file_suffix must end with .go")
+	if cfg.Output.FileSuffix != "" && !strings.HasSuffix(cfg.Output.FileSuffix, ".go") {
+		errs = append(errs, fmt.Sprintf("output.file_suffix must end with .go (got %q) — use e.g. \"_test.go\"", cfg.Output.FileSuffix))
 	}
 
 	// Validate plaintext patterns are valid regex (if set)
 	if cfg.PlaintextPatterns.BlockStart != "" {
 		if _, err := regexp.Compile(cfg.PlaintextPatterns.BlockStart); err != nil {
-			errs = append(errs, fmt.Sprintf("plaintext_patterns.block_start is not a valid regex: %v", err))
+			errs = append(errs, fmt.Sprintf("plaintext_patterns.block_start is not a valid regex: %v — check escaping and capture groups", err))
 		}
 	}
 	if cfg.PlaintextPatterns.BlockEnd != "" {
 		if _, err := regexp.Compile(cfg.PlaintextPatterns.BlockEnd); err != nil {
-			errs = append(errs, fmt.Sprintf("plaintext_patterns.block_end is not a valid regex: %v", err))
+			errs = append(errs, fmt.Sprintf("plaintext_patterns.block_end is not a valid regex: %v — check escaping and capture groups", err))
 		}
 	}
 
@@ -60,7 +60,10 @@ func Validate(cfg *Config) error {
 	}
 
 	if len(errs) > 0 {
-		return domain.NewError("config", "", 0, fmt.Sprintf("validation failed: %s", strings.Join(errs, "; ")), nil)
+		return domain.NewErrorWithSuggestion("config", "", 0,
+			fmt.Sprintf("validation failed:\n  - %s", strings.Join(errs, "\n  - ")),
+			"run 'docsyncer init' to generate a valid default configuration",
+			nil)
 	}
 
 	return nil
