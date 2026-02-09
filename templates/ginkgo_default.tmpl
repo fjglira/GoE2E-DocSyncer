@@ -22,12 +22,14 @@ var _ = Describe("{{.DescribeBlock}}", func() {
 
 		It("{{.TestName}}", func() {
 			{{- range $i, $step := .Steps}}
+			{
 			{{- if $step.Name}}
 			By("{{$step.Name}}")
 			{{- else}}
 			By("Step {{add $i 1}}")
 			{{- end}}
 			{{$step.GoCode}}
+			}
 			{{- end}}
 		})
 
