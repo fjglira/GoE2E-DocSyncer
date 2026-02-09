@@ -1,0 +1,70 @@
+# docsyncer-demo.yaml — Demo config for running against the included testdata
+# Usage:
+#   bin/docsyncer generate --config docsyncer-demo.yaml --dry-run --verbose
+#   bin/docsyncer generate --config docsyncer-demo.yaml --verbose
+
+input:
+  directories:
+    - "testdata/markdown"
+    - "testdata/asciidoc"
+    - "testdata/plaintext"
+  include:
+    - "*.md"
+    - "*.adoc"
+    - "*.txt"
+    - "*.rtf"
+  exclude: []
+  recursive: true
+
+tags:
+  step_tags:
+    - "go-e2e-step"
+  test_start:
+    comment_markers:
+      - "<!-- test-start:"
+    attribute_key: "init"
+  test_end:
+    comment_markers:
+      - "<!-- test-end"
+    attribute_key: "end"
+  attributes:
+    step_name: ["step-name", "name"]
+    timeout: ["timeout"]
+    expected_exit_code: ["expected", "exit-code"]
+    describe: ["describe"]
+    context: ["context"]
+    skip_on_failure: ["skip-on-failure"]
+    template: ["template"]
+
+plaintext_patterns:
+  block_start: '^\s*@begin\((\S+)(?:\s+(.*))?\)\s*$'
+  block_end: '^\s*@end\s*$'
+
+output:
+  directory: "tests/e2e/generated"
+  file_prefix: "generated_"
+  file_suffix: "_test.go"
+  package_name: "e2e_generated"
+  clean_before_generate: true
+
+templates:
+  directory: "templates"
+  default: "ginkgo_default"
+  allow_override: true
+
+commands:
+  default_timeout: "30s"
+  default_expected_exit_code: 0
+  blocked_patterns:
+    - "rm -rf /"
+    - "mkfs"
+    - "dd if="
+    - "format c:"
+    - "> /dev/sd"
+  shell: "/bin/sh"
+  shell_flag: "-c"
+
+logging:
+  level: "info"
+
+dry_run: false
