@@ -121,10 +121,10 @@ func (e *DefaultEngine) Render(spec domain.TestSpec, packageName string) (string
 			nil)
 	}
 
-	// Determine if any step uses context/timeout
+	// Determine if any step uses context/timeout or time.Sleep (retry)
 	needsContext := false
 	for _, step := range spec.Steps {
-		if strings.Contains(step.GoCode, "context.WithTimeout") {
+		if strings.Contains(step.GoCode, "context.WithTimeout") || strings.Contains(step.GoCode, "time.Sleep") {
 			needsContext = true
 			break
 		}
@@ -186,12 +186,12 @@ func (e *DefaultEngine) RenderMulti(specs []domain.TestSpec, packageName string)
 			nil)
 	}
 
-	// Build test cases and check for context usage
+	// Build test cases and check for context usage or time.Sleep (retry)
 	needsContext := false
 	var tests []testCase
 	for _, spec := range specs {
 		for _, step := range spec.Steps {
-			if strings.Contains(step.GoCode, "context.WithTimeout") {
+			if strings.Contains(step.GoCode, "context.WithTimeout") || strings.Contains(step.GoCode, "time.Sleep") {
 				needsContext = true
 			}
 		}

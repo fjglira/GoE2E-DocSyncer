@@ -32,6 +32,8 @@ var _ = Describe("Converter", func() {
 				"expected_exit_code": {"expected", "exit-code"},
 				"skip_on_failure":   {"skip-on-failure"},
 				"template":         {"template"},
+				"retry":            {"retry", "retries", "retry-count"},
+				"retry_interval":   {"retry-interval", "retry-delay"},
 			},
 		}
 		conv = converter.NewConverter(cmdCfg)
@@ -151,7 +153,7 @@ var _ = Describe("Converter", func() {
 
 	Describe("GenerateGoCode", func() {
 		It("should generate simple exec.Command for basic commands", func() {
-			code := converter.GenerateGoCode("kubectl get pods", 0, "30s", cmdCfg)
+			code := converter.GenerateGoCode("kubectl get pods", 0, "30s", 0, "", cmdCfg)
 			Expect(code).To(ContainSubstring("exec.Command"))
 			Expect(code).To(ContainSubstring("kubectl"))
 			Expect(code).To(ContainSubstring("get"))
@@ -159,22 +161,154 @@ var _ = Describe("Converter", func() {
 		})
 
 		It("should use shell for complex commands with pipes", func() {
-			code := converter.GenerateGoCode("cat file | grep test", 0, "30s", cmdCfg)
+			code := converter.GenerateGoCode("cat file | grep test", 0, "30s", 0, "", cmdCfg)
 			Expect(code).To(ContainSubstring("/bin/sh"))
 			Expect(code).To(ContainSubstring("-c"))
 		})
 
 		It("should wrap with timeout", func() {
-			code := converter.GenerateGoCode("echo hello", 0, "60s", cmdCfg)
+			code := converter.GenerateGoCode("echo hello", 0, "60s", 0, "", cmdCfg)
 			Expect(code).To(ContainSubstring("time.ParseDuration"))
 			Expect(code).To(ContainSubstring("context.WithTimeout"))
 			Expect(code).To(ContainSubstring("CommandContext"))
 		})
 
 		It("should handle expected exit code", func() {
-			code := converter.GenerateGoCode("false", 1, "0s", cmdCfg)
+			code := converter.GenerateGoCode("false", 1, "0s", 0, "", cmdCfg)
 			Expect(code).To(ContainSubstring("ExitCode"))
 			Expect(code).To(ContainSubstring("Equal(1)"))
+		})
+
+		It("should not produce retry wrapper when retry=0", func() {
+			code := converter.GenerateGoCode("echo hello", 0, "0s", 0, "", cmdCfg)
+			Expect(code).ToNot(ContainSubstring("attempt"))
+			Expect(code).ToNot(ContainSubstring("time.Sleep"))
+			Expect(code).ToNot(ContainSubstring("lastErr"))
+		})
+
+		It("should produce a retry loop with 4 attempts when retry=3", func() {
+			code := converter.GenerateGoCode("kubectl get pods", 0, "0s", 3, "2s", cmdCfg)
+			Expect(code).To(ContainSubstring("attempt <= 4"))
+			Expect(code).To(ContainSubstring("time.Sleep(2 * time.Second)"))
+			Expect(code).To(ContainSubstring("lastErr"))
+			Expect(code).To(ContainSubstring("lastOutput"))
+			Expect(code).To(ContainSubstring("Expect(lastErr).ToNot(HaveOccurred()"))
+		})
+
+		It("should use custom retry interval", func() {
+			code := converter.GenerateGoCode("echo test", 0, "0s", 2, "5s", cmdCfg)
+			Expect(code).To(ContainSubstring("attempt <= 3"))
+			Expect(code).To(ContainSubstring("time.Sleep(5 * time.Second)"))
+		})
+
+		It("should wrap retry inside timeout", func() {
+			code := converter.GenerateGoCode("kubectl get pods", 0, "60s", 3, "2s", cmdCfg)
+			// Timeout should be the outermost wrapper
+			Expect(code).To(ContainSubstring("context.WithTimeout"))
+			// Retry loop should be inside
+			Expect(code).To(ContainSubstring("attempt <= 4"))
+			Expect(code).To(ContainSubstring("time.Sleep"))
+		})
+	})
+
+	Describe("Retry attribute resolution", func() {
+		It("should resolve retry attribute from block attributes", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{
+						Tag:        "go-e2e-step",
+						Content:    "kubectl get pods",
+						LineNumber: 10,
+						Attributes: map[string]string{
+							"retry":          "3",
+							"retry-interval": "5s",
+						},
+					},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Test", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs).To(HaveLen(1))
+			Expect(specs[0].Steps[0].RetryCount).To(Equal(3))
+			Expect(specs[0].Steps[0].RetryInterval).To(Equal("5s"))
+			Expect(specs[0].Steps[0].GoCode).To(ContainSubstring("attempt <= 4"))
+			Expect(specs[0].Steps[0].GoCode).To(ContainSubstring("time.Sleep(5 * time.Second)"))
+		})
+
+		It("should default retry interval to 2s when not specified", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{
+						Tag:        "go-e2e-step",
+						Content:    "kubectl get pods",
+						LineNumber: 10,
+						Attributes: map[string]string{
+							"retry": "2",
+						},
+					},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Test", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs[0].Steps[0].RetryInterval).To(Equal("2s"))
+			Expect(specs[0].Steps[0].GoCode).To(ContainSubstring("time.Sleep(2 * time.Second)"))
+		})
+
+		It("should not add retry when attribute is absent", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{
+						Tag:        "go-e2e-step",
+						Content:    "echo hello",
+						LineNumber: 10,
+						Attributes: map[string]string{},
+					},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Test", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs[0].Steps[0].RetryCount).To(Equal(0))
+			Expect(specs[0].Steps[0].GoCode).ToNot(ContainSubstring("attempt"))
+		})
+
+		It("should accept retry-count alias", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{
+						Tag:        "go-e2e-step",
+						Content:    "kubectl get pods",
+						LineNumber: 10,
+						Attributes: map[string]string{
+							"retry-count":  "2",
+							"retry-delay":  "3s",
+						},
+					},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Test", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs[0].Steps[0].RetryCount).To(Equal(2))
+			Expect(specs[0].Steps[0].RetryInterval).To(Equal("3s"))
 		})
 	})
 

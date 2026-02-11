@@ -36,6 +36,8 @@ func DefaultConfig() *Config {
 				"context":           {"context"},
 				"skip_on_failure":   {"skip-on-failure"},
 				"template":         {"template"},
+				"retry":            {"retry", "retries", "retry-count"},
+				"retry_interval":   {"retry-interval", "retry-delay"},
 			},
 		},
 		PlaintextPatterns: PlaintextPatternsConfig{

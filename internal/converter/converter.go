@@ -138,8 +138,23 @@ func (c *DefaultConverter) blockToStep(block domain.CodeBlock, index int, tagCfg
 	skipStr := resolveAttribute(block.Attributes, tagCfg.Attributes["skip_on_failure"])
 	step.SkipOnFailure = skipStr == "true" || skipStr == "yes"
 
+	// Resolve retry count
+	retryStr := resolveAttribute(block.Attributes, tagCfg.Attributes["retry"])
+	if retryStr != "" {
+		if count, err := strconv.Atoi(retryStr); err == nil {
+			step.RetryCount = count
+		}
+	}
+
+	// Resolve retry interval (default "2s" when retry is set)
+	retryInterval := resolveAttribute(block.Attributes, tagCfg.Attributes["retry_interval"])
+	if retryInterval == "" {
+		retryInterval = "2s"
+	}
+	step.RetryInterval = retryInterval
+
 	// Generate Go code
-	step.GoCode = GenerateGoCode(block.Content, step.ExpectedExit, step.Timeout, c.cmdConfig)
+	step.GoCode = GenerateGoCode(block.Content, step.ExpectedExit, step.Timeout, step.RetryCount, step.RetryInterval, c.cmdConfig)
 
 	return step
 }

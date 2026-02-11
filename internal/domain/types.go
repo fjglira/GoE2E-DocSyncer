@@ -46,4 +46,6 @@ type TestStep struct {
 	Timeout       string
 	LineNumber    int
 	SkipOnFailure bool
+	RetryCount    int    // Number of retries (0 = no retry)
+	RetryInterval string // Duration between retries (e.g. "2s")
 }
