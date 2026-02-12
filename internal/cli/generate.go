@@ -31,8 +31,8 @@ var generateCmd = &cobra.Command{
 		}
 
 		log.Info("Configuration loaded successfully")
-		log.Infof("Scanning directories: %v", cfg.Input.Directories)
-		log.Infof("Output directory: %s", cfg.Output.Directory)
+		log.Info("Scanning directories", "directories", cfg.Input.Directories)
+		log.Info("Output directory", "path", cfg.Output.Directory)
 
 		return runGenerate(cfg)
 	},

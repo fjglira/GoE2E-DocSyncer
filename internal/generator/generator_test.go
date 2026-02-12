@@ -1,12 +1,13 @@
 package generator_test
 
 import (
+	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 
 	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
 	"github.com/frherrer/GoE2E-DocSyncer/internal/converter"
@@ -21,12 +22,11 @@ var _ = Describe("Generator", func() {
 		gen       *generator.DefaultGenerator
 		cfg       *config.Config
 		outputDir string
-		log       *logrus.Logger
+		log       *slog.Logger
 	)
 
 	BeforeEach(func() {
-		log = logrus.New()
-		log.SetLevel(logrus.DebugLevel)
+		log = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 		var err error
 		outputDir, err = os.MkdirTemp("", "docsyncer-test-*")

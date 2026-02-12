@@ -2,11 +2,10 @@ package generator
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
 	"github.com/frherrer/GoE2E-DocSyncer/internal/converter"
@@ -27,7 +26,7 @@ type DefaultGenerator struct {
 	registry   parser.ParserRegistry
 	converter  converter.Converter
 	engine     tmpl.TemplateEngine
-	log        *logrus.Logger
+	log        *slog.Logger
 }
 
 // NewGenerator creates a new DefaultGenerator with all dependencies.
@@ -36,7 +35,7 @@ func NewGenerator(
 	r parser.ParserRegistry,
 	c converter.Converter,
 	e tmpl.TemplateEngine,
-	log *logrus.Logger,
+	log *slog.Logger,
 ) *DefaultGenerator {
 	return &DefaultGenerator{
 		scanner:   s,
@@ -51,7 +50,7 @@ func NewGenerator(
 func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 	// Step 1: Clean output directory if configured
 	if cfg.Output.CleanBeforeGenerate && !cfg.DryRun {
-		g.log.Debugf("Cleaning output directory: %s", cfg.Output.Directory)
+		g.log.Debug("Cleaning output directory", "path", cfg.Output.Directory)
 		if err := cleanOutputDir(cfg.Output.Directory); err != nil {
 			return domain.NewErrorWithSuggestion("write", cfg.Output.Directory, 0,
 				"failed to clean output directory",
@@ -63,10 +62,10 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 	// Step 2: Scan for documentation files
 	var allFiles []string
 	for _, dir := range cfg.Input.Directories {
-		g.log.Debugf("Scanning directory: %s", dir)
+		g.log.Debug("Scanning directory", "path", dir)
 		files, err := g.scanner.Scan(dir, cfg.Input.Include, cfg.Input.Exclude)
 		if err != nil {
-			g.log.Warnf("Failed to scan directory %s: %v", dir, err)
+			g.log.Warn("Failed to scan directory", "path", dir, "error", err)
 			continue
 		}
 		allFiles = append(allFiles, files...)
@@ -77,12 +76,12 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		return nil
 	}
 
-	g.log.Infof("Found %d documentation file(s)", len(allFiles))
+	g.log.Info("Found documentation file(s)", "count", len(allFiles))
 
 	// Step 3: Parse each file and convert to TestSpecs
 	var allSpecs []domain.TestSpec
 	for _, filePath := range allFiles {
-		g.log.Debugf("Processing: %s", filePath)
+		g.log.Debug("Processing", "path", filePath)
 
 		// Read file content
 		content, err := os.ReadFile(filePath)
@@ -97,7 +96,7 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		ext := filepath.Ext(filePath)
 		p, err := g.registry.ParserFor(ext)
 		if err != nil {
-			g.log.Warnf("No parser for %s, skipping %s", ext, filePath)
+			g.log.Warn("No parser found, skipping", "ext", ext, "path", filePath)
 			continue
 		}
 
@@ -108,11 +107,11 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		}
 
 		if len(doc.Blocks) == 0 {
-			g.log.Debugf("No tagged blocks found in %s", filePath)
+			g.log.Debug("No tagged blocks found", "path", filePath)
 			continue
 		}
 
-		g.log.Debugf("Found %d tagged block(s) in %s", len(doc.Blocks), filePath)
+		g.log.Debug("Found tagged block(s)", "count", len(doc.Blocks), "path", filePath)
 
 		// Convert to TestSpecs
 		specs, err := g.converter.Convert(doc, &cfg.Tags)
@@ -128,7 +127,7 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		return nil
 	}
 
-	g.log.Infof("Generated %d test spec(s)", len(allSpecs))
+	g.log.Info("Generated test spec(s)", "count", len(allSpecs))
 
 	// Step 4: Group specs by output key.
 	// If spec has TestFile set, use TestFile as the grouping key (each unique TestFile → separate output file).
@@ -177,12 +176,12 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		outputPath := filepath.Join(cfg.Output.Directory, outputFile)
 
 		if cfg.DryRun {
-			g.log.Infof("[DRY-RUN] Would write: %s", outputPath)
-			g.log.Debugf("[DRY-RUN] Content:\n%s", rendered)
+			g.log.Info("[DRY-RUN] Would write", "path", outputPath)
+			g.log.Debug("[DRY-RUN] Content", "content", rendered)
 			continue
 		}
 
-		g.log.Infof("Writing: %s", outputPath)
+		g.log.Info("Writing", "path", outputPath)
 		if err := os.WriteFile(outputPath, []byte(rendered), 0644); err != nil {
 			return domain.NewErrorWithSuggestion("write", outputPath, 0,
 				"failed to write output file",

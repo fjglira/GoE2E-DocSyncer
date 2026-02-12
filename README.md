@@ -285,7 +285,7 @@ make tidy           # go mod tidy
 |---------|---------|
 | [goldmark](https://github.com/yuin/goldmark) | CommonMark Markdown AST parsing |
 | [cobra](https://github.com/spf13/cobra) | CLI framework |
-| [logrus](https://github.com/sirupsen/logrus) | Structured logging |
+| [log/slog](https://pkg.go.dev/log/slog) | Structured logging (Go standard library) |
 | [yaml.v3](https://gopkg.in/yaml.v3) | YAML configuration |
 | [ginkgo/v2](https://github.com/onsi/ginkgo) | BDD test framework |
 | [gomega](https://github.com/onsi/gomega) | Assertion library |

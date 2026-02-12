@@ -22,7 +22,7 @@ var validateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Configuration file %q is valid.\n", cfgFile)
-		log.Debugf("Loaded config: %+v", cfg)
+		log.Debug("Loaded config", "config", fmt.Sprintf("%+v", cfg))
 		return nil
 	},
 }
