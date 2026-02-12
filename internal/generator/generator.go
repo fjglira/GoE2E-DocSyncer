@@ -330,7 +330,7 @@ func cleanOutputDir(dir string) error {
 	}
 
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), "_test.go") {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), "_test.go") && entry.Name() != "suite_test.go" {
 			path := filepath.Join(dir, entry.Name())
 			if err := os.Remove(path); err != nil {
 				return err
