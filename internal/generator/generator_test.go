@@ -123,6 +123,8 @@ var _ = Describe("Generator", func() {
 		Expect(contentStr).To(ContainSubstring(`"testing"`))
 		Expect(contentStr).To(ContainSubstring(`. "github.com/onsi/ginkgo/v2"`))
 		Expect(contentStr).To(ContainSubstring(`. "github.com/onsi/gomega"`))
+		Expect(contentStr).To(ContainSubstring("BeforeSuite"))
+		Expect(contentStr).To(ContainSubstring("AfterSuite"))
 	})
 
 	It("should not overwrite existing suite_test.go", func() {

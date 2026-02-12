@@ -270,6 +270,14 @@ func %s(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "%s Suite")
 }
+
+var _ = BeforeSuite(func() {
+	// Add setup code here
+})
+
+var _ = AfterSuite(func() {
+	// Add teardown code here
+})
 `, buildTag, cfg.Output.PackageName, testFunc, suiteDesc)
 
 	if cfg.DryRun {
