@@ -108,12 +108,48 @@ var _ = Describe("Generator", func() {
 		Expect(contentStr2).To(ContainSubstring(`Describe("Application deployment"`))
 	})
 
+	It("should generate suite_test.go in the output directory", func() {
+		err := gen.Generate(cfg)
+		Expect(err).ToNot(HaveOccurred())
+
+		suitePath := filepath.Join(outputDir, "suite_test.go")
+		content, err := os.ReadFile(suitePath)
+		Expect(err).ToNot(HaveOccurred())
+
+		contentStr := string(content)
+		Expect(contentStr).To(ContainSubstring("package e2e_test"))
+		Expect(contentStr).To(ContainSubstring("func TestE2eTest(t *testing.T)"))
+		Expect(contentStr).To(ContainSubstring("RunSpecs(t,"))
+		Expect(contentStr).To(ContainSubstring(`"testing"`))
+		Expect(contentStr).To(ContainSubstring(`. "github.com/onsi/ginkgo/v2"`))
+		Expect(contentStr).To(ContainSubstring(`. "github.com/onsi/gomega"`))
+	})
+
+	It("should not overwrite existing suite_test.go", func() {
+		// Disable clean so our pre-existing file survives
+		cfg.Output.CleanBeforeGenerate = false
+
+		suitePath := filepath.Join(outputDir, "suite_test.go")
+		customContent := "// custom suite file\npackage e2e_test\n"
+		err := os.MkdirAll(outputDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		err = os.WriteFile(suitePath, []byte(customContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = gen.Generate(cfg)
+		Expect(err).ToNot(HaveOccurred())
+
+		content, err := os.ReadFile(suitePath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(content)).To(Equal(customContent))
+	})
+
 	It("should respect dry-run mode", func() {
 		cfg.DryRun = true
 		err := gen.Generate(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		// No files should be written in dry-run mode
+		// No files should be written in dry-run mode (including suite_test.go)
 		entries, err := os.ReadDir(outputDir)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(entries).To(BeEmpty())

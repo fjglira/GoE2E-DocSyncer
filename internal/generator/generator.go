@@ -190,6 +190,11 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		}
 	}
 
+	// Step 7: Generate suite_test.go if it doesn't already exist
+	if err := writeSuiteFile(cfg, g.log); err != nil {
+		return err
+	}
+
 	g.log.Info("Generation complete")
 	return nil
 }
@@ -227,6 +232,75 @@ func sanitizeTestFileName(name string) string {
 		result = strings.ReplaceAll(result, "__", "_")
 	}
 	return strings.Trim(result, "_")
+}
+
+// writeSuiteFile generates a suite_test.go bootstrap file in the output directory.
+// It skips writing if the file already exists to avoid overwriting user-maintained files.
+func writeSuiteFile(cfg *config.Config, log *slog.Logger) error {
+	suitePath := filepath.Join(cfg.Output.Directory, "suite_test.go")
+
+	// Skip if file already exists
+	if _, err := os.Stat(suitePath); err == nil {
+		log.Debug("suite_test.go already exists, skipping", "path", suitePath)
+		return nil
+	}
+
+	testFunc := packageNameToTestFunc(cfg.Output.PackageName)
+	suiteDesc := strings.ReplaceAll(testFunc, "Test", "")
+	// If stripping "Test" prefix leaves it empty, use the full name
+	if suiteDesc == "" {
+		suiteDesc = testFunc
+	}
+
+	var buildTag string
+	if cfg.Output.BuildTag != "" {
+		buildTag = fmt.Sprintf("//go:build %s\n\n", cfg.Output.BuildTag)
+	}
+
+	content := fmt.Sprintf(`%spackage %s
+
+import (
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+func %s(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "%s Suite")
+}
+`, buildTag, cfg.Output.PackageName, testFunc, suiteDesc)
+
+	if cfg.DryRun {
+		log.Info("[DRY-RUN] Would write", "path", suitePath)
+		log.Debug("[DRY-RUN] Content", "content", content)
+		return nil
+	}
+
+	log.Info("Writing", "path", suitePath)
+	if err := os.WriteFile(suitePath, []byte(content), 0644); err != nil {
+		return domain.NewErrorWithSuggestion("write", suitePath, 0,
+			"failed to write suite file",
+			"check disk space and write permissions for the output directory",
+			err)
+	}
+	return nil
+}
+
+// packageNameToTestFunc converts a Go package name to a Test function name.
+// e.g. "e2e_generated" → "TestE2eGenerated", "e2e_test" → "TestE2eTest"
+func packageNameToTestFunc(pkg string) string {
+	parts := strings.Split(pkg, "_")
+	var b strings.Builder
+	b.WriteString("Test")
+	for _, part := range parts {
+		if len(part) == 0 {
+			continue
+		}
+		b.WriteString(strings.ToUpper(part[:1]) + strings.ToLower(part[1:]))
+	}
+	return b.String()
 }
 
 // cleanOutputDir removes all generated files from the output directory.
