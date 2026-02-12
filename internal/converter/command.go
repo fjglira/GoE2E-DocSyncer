@@ -2,6 +2,7 @@ package converter
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
@@ -12,16 +13,28 @@ func GenerateGoCode(command string, expectedExit int, timeout string, retryCount
 	command = strings.TrimSpace(command)
 	lines := strings.Split(command, "\n")
 
-	// Multi-line commands are joined with &&
+	// Multi-line commands: preserve newlines for heredocs, join with && otherwise
 	if len(lines) > 1 {
-		var trimmed []string
-		for _, l := range lines {
-			l = strings.TrimSpace(l)
-			if l != "" {
-				trimmed = append(trimmed, l)
+		if containsHeredoc(command) {
+			// Heredoc content must preserve newlines (YAML is indentation-sensitive)
+			var trimmed []string
+			for _, l := range lines {
+				l = strings.TrimRight(l, " \t")
+				if l != "" {
+					trimmed = append(trimmed, l)
+				}
 			}
+			command = strings.Join(trimmed, "\n")
+		} else {
+			var trimmed []string
+			for _, l := range lines {
+				l = strings.TrimSpace(l)
+				if l != "" {
+					trimmed = append(trimmed, l)
+				}
+			}
+			command = strings.Join(trimmed, " && ")
 		}
-		command = strings.Join(trimmed, " && ")
 	}
 
 	var goCode string
@@ -58,6 +71,14 @@ func isComplexCommand(cmd string) bool {
 		}
 	}
 	return false
+}
+
+// heredocPattern matches heredoc operators like <<EOF, <<'EOF', <<"EOF", <<-EOF
+var heredocPattern = regexp.MustCompile(`<<-?\s*['"]?(\w+)['"]?`)
+
+// containsHeredoc detects whether a command contains a heredoc (<<DELIM).
+func containsHeredoc(cmd string) bool {
+	return heredocPattern.MatchString(cmd)
 }
 
 // generateSimpleCommand generates exec.Command for simple commands.

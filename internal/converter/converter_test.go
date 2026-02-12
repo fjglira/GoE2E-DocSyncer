@@ -280,6 +280,21 @@ var _ = Describe("Converter", func() {
 			Expect(code).To(ContainSubstring("Expect(lastErr).ToNot(HaveOccurred()"))
 		})
 
+		It("should preserve newlines in heredoc commands", func() {
+			heredocCmd := "cat <<EOF | kubectl apply -f-\napiVersion: v1\nkind: Namespace\nmetadata:\n  name: test\nEOF"
+			code := converter.GenerateGoCode(heredocCmd, 0, "0s", 0, "", cmdCfg)
+			Expect(code).To(ContainSubstring("/bin/sh"), "heredoc should route through shell")
+			Expect(code).To(ContainSubstring("-c"), "heredoc should use shell flag")
+			Expect(code).ToNot(ContainSubstring("&&"), "heredoc lines should not be joined with &&")
+			Expect(code).To(ContainSubstring("apiVersion: v1"), "heredoc content should be preserved")
+		})
+
+		It("should still join non-heredoc multi-line commands with &&", func() {
+			multiCmd := "kubectl create ns foo\nkubectl apply -f bar.yaml"
+			code := converter.GenerateGoCode(multiCmd, 0, "0s", 0, "", cmdCfg)
+			Expect(code).To(ContainSubstring("kubectl create ns foo && kubectl apply -f bar.yaml"))
+		})
+
 		It("should use custom retry interval", func() {
 			code := converter.GenerateGoCode("echo test", 0, "0s", 2, "5s", cmdCfg)
 			Expect(code).To(ContainSubstring("attempt <= 3"))
