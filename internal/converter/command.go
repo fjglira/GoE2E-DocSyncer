@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/config"
 )
 
 // GenerateGoCode converts a shell command string into Go code using os/exec.

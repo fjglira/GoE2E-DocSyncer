@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/parser"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/parser"
 )
 
 var _ = Describe("AsciiDocParser", func() {

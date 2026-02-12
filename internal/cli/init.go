@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/config"
 )
 
 var initCmd = &cobra.Command{

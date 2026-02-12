@@ -8,7 +8,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
 )
 
 // MarkdownParser parses Markdown documents using goldmark.

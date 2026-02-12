@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
 )
 
 //go:embed embedded/ginkgo_default.tmpl

@@ -3,12 +3,12 @@ package cli
 import (
 	"fmt"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/converter"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/generator"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/parser"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/scanner"
-	tmpl "github.com/frherrer/GoE2E-DocSyncer/internal/template"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/config"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/converter"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/generator"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/parser"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/scanner"
+	tmpl "github.com/fjglira/GoE2E-DocSyncer/internal/template"
 	"github.com/spf13/cobra"
 )
 

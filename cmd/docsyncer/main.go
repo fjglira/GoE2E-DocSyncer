@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/cli"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/cli"
 )
 
 func main() {

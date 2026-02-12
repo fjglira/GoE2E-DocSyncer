@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
 )
 
 // Parser extracts code blocks from a document.

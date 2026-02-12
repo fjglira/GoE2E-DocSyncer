@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
 )
 
 // AsciiDocParser parses AsciiDoc documents using regex patterns.

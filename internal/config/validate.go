@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
 )
 
 // Validate checks the Config for required fields and valid values.

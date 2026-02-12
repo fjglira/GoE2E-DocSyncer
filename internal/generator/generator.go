@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/converter"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/parser"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/scanner"
-	tmpl "github.com/frherrer/GoE2E-DocSyncer/internal/template"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/config"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/converter"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/parser"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/scanner"
+	tmpl "github.com/fjglira/GoE2E-DocSyncer/internal/template"
 )
 
 // Generator is the top-level orchestrator.

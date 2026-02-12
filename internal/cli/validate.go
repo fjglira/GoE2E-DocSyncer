@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/config"
 	"github.com/spf13/cobra"
 )
 

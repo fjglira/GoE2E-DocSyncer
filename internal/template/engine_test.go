@@ -7,8 +7,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
-	tmpl "github.com/frherrer/GoE2E-DocSyncer/internal/template"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
+	tmpl "github.com/fjglira/GoE2E-DocSyncer/internal/template"
 )
 
 var _ = Describe("TemplateEngine", func() {

@@ -1,4 +1,4 @@
-module github.com/frherrer/GoE2E-DocSyncer
+module github.com/fjglira/GoE2E-DocSyncer
 
 go 1.25
 

@@ -4,9 +4,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/converter"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/config"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/converter"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
 )
 
 var _ = Describe("Converter", func() {

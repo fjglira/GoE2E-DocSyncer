@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
 )
 
 // Scanner discovers documentation files in the project tree.

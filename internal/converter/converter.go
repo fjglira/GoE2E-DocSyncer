@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/frherrer/GoE2E-DocSyncer/internal/config"
-	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/config"
+	"github.com/fjglira/GoE2E-DocSyncer/internal/domain"
 )
 
 // Converter transforms parsed documents into TestSpec domain models.
