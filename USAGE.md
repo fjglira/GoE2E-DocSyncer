@@ -41,6 +41,7 @@ Check the generated output:
 
 ```bash
 ls tests/e2e/generated/
+# suite_test.go                                  (Ginkgo bootstrap — generated once, never overwritten)
 # generated_simple_deployment_test_test.go   (from simple.md, named after test-start)
 # generated_infrastructure_provisioning_test.go  (from multi-step.md, 1st test-start)
 # generated_application_deployment_test.go       (from multi-step.md, 2nd test-start)
@@ -59,6 +60,8 @@ cat tests/e2e/generated/generated_application_deployment_test.go
 **`generated_application_deployment_test.go`** — Single `It()` block with 3 steps from `test-start: Application deployment` (no step groups, so all steps in one `It()`)
 
 **Things to verify:**
+- [ ] `suite_test.go` is created with the Ginkgo bootstrap (`TestXxx`, `BeforeSuite`, `AfterSuite`)
+- [ ] Re-running `docsyncer generate` does **not** overwrite an existing `suite_test.go`
 - [ ] Each `test-start`/`test-end` pair produces a **separate output file** named after the test-start name
 - [ ] Output files contain `package e2e_generated`
 - [ ] `Describe()` block uses the test-start name (or document heading if no test-start)
@@ -211,7 +214,9 @@ docsyncer generate --verbose
 
 ### 2.7 Run the generated tests
 
-The generated files are standard Ginkgo test files. Run them with:
+The generated files are standard Ginkgo test files. On the first run, docsyncer also creates a `suite_test.go` bootstrap file with the `TestXxx` entry point, empty `BeforeSuite`, and empty `AfterSuite` blocks.
+
+**`suite_test.go` is generated only once.** If the file already exists it is never overwritten, so you can safely add your own setup and teardown logic (cluster login, namespace creation, cleanup, etc.) and re-run `docsyncer generate` without losing your changes.
 
 ```bash
 # If you have ginkgo CLI:

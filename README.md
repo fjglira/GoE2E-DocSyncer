@@ -13,6 +13,7 @@ Everything is driven by a single YAML configuration file (`docsyncer.yaml`). The
 - **Step grouping** — `<!-- test-step-start: NAME -->` / `<!-- test-step-end -->` markers group steps into separate `It()` blocks within a test file
 - **Smart code generation** — Shell commands are converted to `exec.Command` / `exec.CommandContext` with timeout and exit code handling
 - **Security validation** — Configurable blocked-command patterns prevent dangerous commands in generated tests
+- **Auto-generated `suite_test.go`** — Creates the Ginkgo bootstrap file automatically; only generated once so you can add your own `BeforeSuite`/`AfterSuite` setup without it being overwritten
 - **Embedded default template** — Works with `go run` out of the box; no local `templates/` directory needed
 - **Configurable build tags** — Add `//go:build` constraints to generated files via `output.build_tag`
 - **go/format compliant** — All generated code passes `gofmt`
@@ -57,7 +58,7 @@ docsyncer generate --dry-run --verbose
 2. **Parse** — Extracts tagged code blocks using format-aware parsers
 3. **Convert** — Transforms blocks into `TestSpec` domain models with generated Go code
 4. **Render** — Applies Go templates to produce `_test.go` source
-5. **Write** — Outputs formatted test files to your configured directory
+5. **Write** — Outputs formatted test files and a `suite_test.go` bootstrap file to your configured directory
 
 ### Supported Documentation Formats
 
@@ -210,7 +211,11 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=redis --timeout
 <!-- test-end -->
 ```
 
-DocSyncer generates `generated_redis_deployment_e2e_test.go`:
+DocSyncer generates `generated_redis_deployment_e2e_test.go` and a `suite_test.go` bootstrap file.
+
+The `suite_test.go` is only created once. If it already exists, it is left untouched so you can customize `BeforeSuite`/`AfterSuite` with your own setup and teardown logic.
+
+Generated test file:
 
 ```go
 package e2e_generated
