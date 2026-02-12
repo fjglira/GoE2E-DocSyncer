@@ -41,30 +41,32 @@ Check the generated output:
 
 ```bash
 ls tests/e2e/generated/
-# generated_simple_test.go
-# generated_multi-step_test.go
-# generated_sample_test.go     (from AsciiDoc)
-# generated_generic_test.go    (from plaintext)
-# generated_sample_test.go     (from RTF — may overwrite AsciiDoc's)
+# generated_simple_deployment_test_test.go   (from simple.md, named after test-start)
+# generated_infrastructure_provisioning_test.go  (from multi-step.md, 1st test-start)
+# generated_application_deployment_test.go       (from multi-step.md, 2nd test-start)
+# generated_sample_test.go     (from AsciiDoc — no test-start, uses filename)
 
-cat tests/e2e/generated/generated_simple_test.go
-cat tests/e2e/generated/generated_multi-step_test.go
+cat tests/e2e/generated/generated_infrastructure_provisioning_test.go
+cat tests/e2e/generated/generated_application_deployment_test.go
 ```
 
 ### 1.3 What to look for
 
-**`generated_simple_test.go`** — Single `It()` block with 3 steps from `testdata/markdown/simple.md`
+**`generated_simple_deployment_test_test.go`** — Single `It()` block with 3 steps from `testdata/markdown/simple.md`, file named after `test-start: Simple deployment test`
 
-**`generated_multi-step_test.go`** — Two `It()` blocks ("Infrastructure provisioning" and "Application deployment") from the test-start/test-end groups in `testdata/markdown/multi-step.md`
+**`generated_infrastructure_provisioning_test.go`** — Two `It()` blocks ("Setup Database" and "Wait for Ready") from the `test-step-start/end` groups within `test-start: Infrastructure provisioning` in `testdata/markdown/multi-step.md`
+
+**`generated_application_deployment_test.go`** — Single `It()` block with 3 steps from `test-start: Application deployment` (no step groups, so all steps in one `It()`)
 
 **Things to verify:**
+- [ ] Each `test-start`/`test-end` pair produces a **separate output file** named after the test-start name
 - [ ] Output files contain `package e2e_generated`
-- [ ] `Describe()` block uses the document's top-level heading
+- [ ] `Describe()` block uses the test-start name (or document heading if no test-start)
+- [ ] `test-step-start`/`test-step-end` pairs within a test-start block produce separate `It()` blocks
 - [ ] Each step has a `By()` with the step name
 - [ ] Commands with `timeout` use `context.WithTimeout` and `exec.CommandContext`
 - [ ] Simple commands use `exec.Command("cmd", "arg1", "arg2")`
 - [ ] Complex commands (pipes) use `exec.Command("/bin/sh", "-c", "...")`
-- [ ] Multi-step.md produces separate `It()` blocks per test group
 
 ### 1.4 Validate the config
 
@@ -145,8 +147,10 @@ curl -f http://localhost:8080/healthz
 **Key syntax:**
 - The code fence language must match one of your `tags.step_tags` (default: `go-e2e-step`)
 - Attributes go in the info string: `step-name="..."`, `timeout=60s`, `exit-code=1`
-- `<!-- test-start: Name -->` / `<!-- test-end -->` group blocks into separate `It()` blocks
-- Blocks outside any test-start/test-end pair are grouped by filename
+- `<!-- test-start: Name -->` / `<!-- test-end -->` — each pair produces a **separate output file** named after the test-start name
+- `<!-- test-step-start: Name -->` / `<!-- test-step-end -->` — within a test-start block, each pair produces a separate `It()` block
+- Without `test-step-start/end`, all steps in a `test-start/end` block go into a single `It()`
+- Blocks outside any test-start/test-end pair are grouped by source filename
 
 ### 2.4 Configure docsyncer.yaml
 
@@ -253,18 +257,6 @@ kubectl get pods
 ----
 ```
 
-### Plain text (.txt, .rst)
-
-```
-@begin(go-e2e-step step-name="My step" timeout=30s)
-kubectl get pods
-@end
-```
-
-### RTF (.rtf)
-
-Same `@begin`/`@end` syntax as plain text. RTF control words (`\par`, `\b`, etc.) are automatically stripped before parsing.
-
 ---
 
 ## Part 4: Troubleshooting
@@ -279,7 +271,6 @@ Same `@begin`/`@end` syntax as plain text. RTF control words (`\par`, `\b`, etc.
 
 - Verify your code fence language matches one of your `tags.step_tags`
 - For Markdown: the tag goes right after the triple backticks (`` ```go-e2e-step ``)
-- For plain text: check that `plaintext_patterns.block_start` regex matches your markers
 
 ### "template not found"
 

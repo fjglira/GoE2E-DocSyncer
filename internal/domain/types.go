@@ -3,7 +3,7 @@ package domain
 // ParsedDocument holds the result of parsing a single document file.
 type ParsedDocument struct {
 	FilePath string
-	FileType string            // "markdown", "asciidoc", "plaintext", etc.
+	FileType string            // "markdown" or "asciidoc"
 	Blocks   []CodeBlock       // All extracted code blocks (tagged ones)
 	Headings []Heading         // Document structure (for context inference)
 	Metadata map[string]string // Any document-level metadata found
@@ -16,7 +16,8 @@ type CodeBlock struct {
 	LineNumber int               // 1-based line number in source
 	Attributes map[string]string // Key-value attributes from the fence info
 	Context    string            // Nearest heading / section title
-	TestGroup  string            // test-start group name (empty if ungrouped)
+	TestFile   string            // test-start name — controls output file (empty if ungrouped)
+	StepGroup  string            // test-step-start name — controls It() block grouping
 }
 
 // Heading represents a document heading for context inference.
@@ -35,6 +36,7 @@ type TestSpec struct {
 	ContextBlock  string
 	Steps         []TestStep
 	TemplateName  string
+	TestFile      string // controls output file naming (empty = use SourceFile)
 }
 
 // TestStep is a single executable step within a test.

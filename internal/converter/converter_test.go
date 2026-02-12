@@ -80,12 +80,12 @@ var _ = Describe("Converter", func() {
 			Expect(specs).To(BeNil())
 		})
 
-		It("should use TestGroup as test name when set", func() {
+		It("should use TestFile as test name when set and no StepGroup", func() {
 			doc := &domain.ParsedDocument{
 				FilePath: "test.md",
 				FileType: "markdown",
 				Blocks: []domain.CodeBlock{
-					{Tag: "go-e2e-step", Content: "echo hello", Attributes: map[string]string{}, TestGroup: "My Custom Test"},
+					{Tag: "go-e2e-step", Content: "echo hello", Attributes: map[string]string{}, TestFile: "My Custom Test"},
 				},
 				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
 				Metadata: map[string]string{"test-start": "My Custom Test"},
@@ -94,16 +94,17 @@ var _ = Describe("Converter", func() {
 			specs, err := conv.Convert(doc, tagCfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(specs[0].TestName).To(Equal("My Custom Test"))
+			Expect(specs[0].TestFile).To(Equal("My Custom Test"))
 		})
 
-		It("should produce multiple TestSpecs for different TestGroups", func() {
+		It("should produce multiple TestSpecs for different TestFile values", func() {
 			doc := &domain.ParsedDocument{
 				FilePath: "multi.md",
 				FileType: "markdown",
 				Blocks: []domain.CodeBlock{
-					{Tag: "go-e2e-step", Content: "echo step1", Attributes: map[string]string{}, TestGroup: "Group A"},
-					{Tag: "go-e2e-step", Content: "echo step2", Attributes: map[string]string{}, TestGroup: "Group A"},
-					{Tag: "go-e2e-step", Content: "echo step3", Attributes: map[string]string{}, TestGroup: "Group B"},
+					{Tag: "go-e2e-step", Content: "echo step1", Attributes: map[string]string{}, TestFile: "File A"},
+					{Tag: "go-e2e-step", Content: "echo step2", Attributes: map[string]string{}, TestFile: "File A"},
+					{Tag: "go-e2e-step", Content: "echo step3", Attributes: map[string]string{}, TestFile: "File B"},
 				},
 				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
 				Metadata: map[string]string{},
@@ -112,9 +113,11 @@ var _ = Describe("Converter", func() {
 			specs, err := conv.Convert(doc, tagCfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(specs).To(HaveLen(2))
-			Expect(specs[0].TestName).To(Equal("Group A"))
+			Expect(specs[0].TestName).To(Equal("File A"))
+			Expect(specs[0].TestFile).To(Equal("File A"))
 			Expect(specs[0].Steps).To(HaveLen(2))
-			Expect(specs[1].TestName).To(Equal("Group B"))
+			Expect(specs[1].TestName).To(Equal("File B"))
+			Expect(specs[1].TestFile).To(Equal("File B"))
 			Expect(specs[1].Steps).To(HaveLen(1))
 		})
 
@@ -132,6 +135,7 @@ var _ = Describe("Converter", func() {
 			specs, err := conv.Convert(doc, tagCfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(specs[0].TestName).To(Equal("test"))
+			Expect(specs[0].TestFile).To(BeEmpty())
 		})
 
 		It("should reject blocked commands", func() {
@@ -148,6 +152,87 @@ var _ = Describe("Converter", func() {
 			_, err := conv.Convert(doc, tagCfg)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("blocked"))
+		})
+
+		It("should use TestFile name as Describe block when set", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{Tag: "go-e2e-step", Content: "echo hello", Attributes: map[string]string{}, TestFile: "My Test File"},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs[0].DescribeBlock).To(Equal("My Test File"))
+		})
+	})
+
+	Describe("Two-level grouping (TestFile + StepGroup)", func() {
+		It("should produce separate TestSpecs for different StepGroups within same TestFile", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{Tag: "go-e2e-step", Content: "echo setup", Attributes: map[string]string{}, TestFile: "My Test", StepGroup: "Setup"},
+					{Tag: "go-e2e-step", Content: "echo verify", Attributes: map[string]string{}, TestFile: "My Test", StepGroup: "Verify"},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs).To(HaveLen(2))
+			Expect(specs[0].TestName).To(Equal("Setup"))
+			Expect(specs[0].TestFile).To(Equal("My Test"))
+			Expect(specs[0].DescribeBlock).To(Equal("My Test"))
+			Expect(specs[1].TestName).To(Equal("Verify"))
+			Expect(specs[1].TestFile).To(Equal("My Test"))
+			Expect(specs[1].DescribeBlock).To(Equal("My Test"))
+		})
+
+		It("should use TestFile name when blocks have no StepGroup", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{Tag: "go-e2e-step", Content: "echo step1", Attributes: map[string]string{}, TestFile: "My Test"},
+					{Tag: "go-e2e-step", Content: "echo step2", Attributes: map[string]string{}, TestFile: "My Test"},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs).To(HaveLen(1))
+			Expect(specs[0].TestName).To(Equal("My Test"))
+			Expect(specs[0].Steps).To(HaveLen(2))
+		})
+
+		It("should handle mix of StepGroup and ungrouped blocks within same TestFile", func() {
+			doc := &domain.ParsedDocument{
+				FilePath: "test.md",
+				FileType: "markdown",
+				Blocks: []domain.CodeBlock{
+					{Tag: "go-e2e-step", Content: "echo setup", Attributes: map[string]string{}, TestFile: "My Test", StepGroup: "Setup"},
+					{Tag: "go-e2e-step", Content: "echo middle", Attributes: map[string]string{}, TestFile: "My Test"},
+					{Tag: "go-e2e-step", Content: "echo verify", Attributes: map[string]string{}, TestFile: "My Test", StepGroup: "Verify"},
+				},
+				Headings: []domain.Heading{{Level: 1, Text: "Title", Line: 1}},
+				Metadata: map[string]string{},
+			}
+
+			specs, err := conv.Convert(doc, tagCfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(specs).To(HaveLen(3))
+			Expect(specs[0].TestName).To(Equal("Setup"))
+			Expect(specs[1].TestName).To(Equal("My Test"))
+			Expect(specs[2].TestName).To(Equal("Verify"))
 		})
 	})
 

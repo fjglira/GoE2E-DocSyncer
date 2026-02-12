@@ -6,7 +6,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Input: InputConfig{
 			Directories: []string{"docs"},
-			Include:     []string{"*.md"},
+			Include:     []string{"*.md", "*.adoc"},
 			Exclude:     []string{"vendor/**", "node_modules/**"},
 			Recursive:   &recursive,
 		},
@@ -28,6 +28,20 @@ func DefaultConfig() *Config {
 				},
 				AttributeKey: "end",
 			},
+			StepStart: TestMarkerConfig{
+				CommentMarkers: []string{
+					"<!-- test-step-start:",
+					"// test-step-start:",
+					"# test-step-start:",
+				},
+			},
+			StepEnd: TestMarkerConfig{
+				CommentMarkers: []string{
+					"<!-- test-step-end",
+					"// test-step-end",
+					"# test-step-end",
+				},
+			},
 			Attributes: map[string][]string{
 				"step_name":          {"step-name", "name"},
 				"timeout":           {"timeout"},
@@ -39,10 +53,6 @@ func DefaultConfig() *Config {
 				"retry":            {"retry", "retries", "retry-count"},
 				"retry_interval":   {"retry-interval", "retry-delay"},
 			},
-		},
-		PlaintextPatterns: PlaintextPatternsConfig{
-			BlockStart: `^\s*@begin\((\S+)(?:\s+(.*))?\)\s*$`,
-			BlockEnd:   `^\s*@end\s*$`,
 		},
 		Output: OutputConfig{
 			Directory:           "tests/e2e/generated",

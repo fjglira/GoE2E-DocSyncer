@@ -104,14 +104,6 @@ var _ = Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("file_suffix"))
 		})
 
-		It("should fail for invalid regex in plaintext patterns", func() {
-			cfg := config.DefaultConfig()
-			cfg.PlaintextPatterns.BlockStart = "[invalid"
-			err := config.Validate(cfg)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("block_start"))
-		})
-
 		It("should fail for invalid log level", func() {
 			cfg := config.DefaultConfig()
 			cfg.Logging.Level = "verbose"

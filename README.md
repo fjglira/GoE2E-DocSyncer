@@ -1,15 +1,16 @@
 # GoE2E-DocSyncer
 
-A Go CLI tool that reads documentation files (Markdown, AsciiDoc, RTF, plain text) and generates executable [Ginkgo](https://onsi.github.io/ginkgo/)/[Gomega](https://onsi.github.io/gomega/) E2E test files.
+A Go CLI tool that reads documentation files (Markdown, AsciiDoc) and generates executable [Ginkgo](https://onsi.github.io/ginkgo/)/[Gomega](https://onsi.github.io/gomega/) E2E test files.
 
 Everything is driven by a single YAML configuration file (`docsyncer.yaml`). The tool makes no assumptions about your project structure.
 
 ## Features
 
-- **Multi-format support** — Markdown (via goldmark AST), AsciiDoc, RTF, and generic text files via configurable regex patterns
+- **Multi-format support** — Markdown (via goldmark AST) and AsciiDoc
 - **YAML-driven** — All behavior controlled by `docsyncer.yaml`; no hard-coded tag names or paths
 - **Pluggable parsers** — Add new formats by implementing the `Parser` interface and registering it
-- **Test grouping** — `<!-- test-start: NAME -->` / `<!-- test-end -->` markers produce separate `It()` blocks
+- **Test file boundaries** — `<!-- test-start: NAME -->` / `<!-- test-end -->` markers produce **separate output files** (one per pair)
+- **Step grouping** — `<!-- test-step-start: NAME -->` / `<!-- test-step-end -->` markers group steps into separate `It()` blocks within a test file
 - **Smart code generation** — Shell commands are converted to `exec.Command` / `exec.CommandContext` with timeout and exit code handling
 - **Security validation** — Configurable blocked-command patterns prevent dangerous commands in generated tests
 - **go/format compliant** — All generated code passes `gofmt`
@@ -62,8 +63,6 @@ docsyncer generate --dry-run --verbose
 |--------|-----------|--------|---------------------|
 | Markdown | `.md`, `.markdown` | goldmark AST | Fenced code blocks with tag in info string |
 | AsciiDoc | `.adoc`, `.asciidoc` | Regex-based | `[source,<tag>]` blocks between `----` |
-| RTF | `.rtf` | Plaintext + RTF stripper | `@begin`/`@end` markers (after stripping RTF control words) |
-| Plain text | `.txt`, `.rst` | Configurable regex | `@begin(tag ...)`/`@end` markers (customizable) |
 
 ### Tagging Code Blocks
 
@@ -84,17 +83,9 @@ kubectl apply -f deploy.yaml
 ----
 ```
 
-In **plain text** (or RTF after stripping):
+### Test File Boundaries
 
-```
-@begin(go-e2e-step step-name="Deploy app" timeout=60s)
-kubectl apply -f deploy.yaml
-@end
-```
-
-### Test Grouping
-
-Use `test-start` / `test-end` markers to group blocks into separate `It()` blocks:
+Use `test-start` / `test-end` markers to define separate output files. Each pair produces its own `_test.go` file, named after the marker:
 
 ```markdown
 <!-- test-start: Infrastructure setup -->
@@ -118,7 +109,37 @@ kubectl apply -f ./k8s/
 <!-- test-end -->
 ```
 
-This generates a single test file with two `It()` blocks: "Infrastructure setup" and "Application deployment".
+This generates **two** output files: `generated_infrastructure_setup_test.go` and `generated_application_deployment_test.go`.
+
+### Step Grouping
+
+Use `test-step-start` / `test-step-end` markers inside a `test-start` / `test-end` block to split steps into separate `It()` blocks within that test file:
+
+```markdown
+<!-- test-start: Database tests -->
+
+<!-- test-step-start: Setup -->
+
+```go-e2e-step
+helm install postgres bitnami/postgresql
+```
+
+<!-- test-step-end -->
+
+<!-- test-step-start: Verify -->
+
+```go-e2e-step
+kubectl get pods -l app=postgresql
+```
+
+<!-- test-step-end -->
+
+<!-- test-end -->
+```
+
+This generates one file `generated_database_tests_test.go` with two `It()` blocks: "Setup" and "Verify".
+
+When no `test-step-start/end` is used inside a `test-start/end` block, all steps go into a single `It()` named after the test-start name. Blocks without any markers fall back to using the source filename.
 
 ## CLI Commands
 
@@ -160,8 +181,7 @@ output:
 | Section | Purpose |
 |---------|---------|
 | `input` | Directories to scan, include/exclude patterns, recursive flag |
-| `tags` | Step tags, test-start/end markers, attribute name mappings |
-| `plaintext_patterns` | Regex patterns for `@begin`/`@end` block detection |
+| `tags` | Step tags, test-start/end markers, step-start/end markers, attribute name mappings |
 | `output` | Output directory, file naming, package name, clean-before-generate |
 | `templates` | Template directory, default template, override support |
 | `commands` | Default timeout, expected exit code, blocked patterns, shell config |
@@ -187,7 +207,7 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=redis --timeout
 <!-- test-end -->
 ```
 
-DocSyncer generates:
+DocSyncer generates `generated_redis_deployment_e2e_test.go`:
 
 ```go
 package e2e_generated
@@ -205,7 +225,7 @@ import (
 // Source type: markdown
 // DO NOT EDIT — this file is regenerated on every run.
 
-var _ = Describe("API Gateway Setup", func() {
+var _ = Describe("Redis deployment E2E", func() {
     It("Redis deployment E2E", func() {
         {
             By("Deploy Redis via Helm")
@@ -243,7 +263,7 @@ GoE2E-DocSyncer/
 │   ├── generator/          # Pipeline orchestrator
 │   └── cli/                # Cobra CLI commands
 ├── templates/              # Default Ginkgo template
-├── testdata/               # Test fixtures (markdown, asciidoc, plaintext, RTF)
+├── testdata/               # Test fixtures (markdown, asciidoc)
 ├── docsyncer.yaml          # Example configuration
 └── PLAN.md                 # Architecture and design document
 ```

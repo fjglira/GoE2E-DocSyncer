@@ -20,7 +20,6 @@ input:
     - "*.md"
     - "*.adoc"
     - "*.asciidoc"
-    - "*.txt"
 
   # Patterns/directories to exclude from scanning
   exclude:
@@ -40,7 +39,6 @@ tags:
   # Code fence language tags that identify test steps.
   #   Markdown:  ```go-e2e-step
   #   AsciiDoc:  [source,go-e2e-step]
-  #   Plaintext: Uses plaintext_patterns below
   step_tags:
     - "go-e2e-step"
 
@@ -61,6 +59,20 @@ tags:
       - "# test-end"
     attribute_key: "end"
 
+  # Markers that define step group boundaries within a test file
+  # Each test-step-start/end pair produces a separate It() block
+  step_start:
+    comment_markers:
+      - "<!-- test-step-start:"
+      - "// test-step-start:"
+      - "# test-step-start:"
+
+  step_end:
+    comment_markers:
+      - "<!-- test-step-end"
+      - "// test-step-end"
+      - "# test-step-end"
+
   # Recognized attribute names inside code fence metadata
   # Each key maps to a list of synonyms the parser should recognize
   attributes:
@@ -71,18 +83,6 @@ tags:
     context: ["context"]
     skip_on_failure: ["skip-on-failure"]
     template: ["template"]
-
-# =============================================================================
-# Plaintext / Generic Parser Patterns
-# For file formats without native code fence syntax (e.g., .txt, .rst, .rtf)
-# =============================================================================
-plaintext_patterns:
-  # Regex to match block start. Capture groups:
-  #   group 1 = tag name
-  #   group 2 = optional attributes string
-  block_start: '^\s*@begin\((\S+)(?:\s+(.*))?\)\s*$'
-  # Regex to match block end
-  block_end: '^\s*@end\s*$'
 
 # =============================================================================
 # Output Configuration

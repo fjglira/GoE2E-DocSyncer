@@ -107,28 +107,51 @@ var _ = Describe("MarkdownParser", func() {
 			}
 		})
 
-		It("should assign TestGroup from test-start markers", func() {
+		It("should assign TestFile from test-start markers", func() {
 			doc, err := p.Parse("multi-step.md", content, []string{"go-e2e-step"})
 			Expect(err).ToNot(HaveOccurred())
 
 			// First 2 blocks belong to "Infrastructure provisioning"
-			Expect(doc.Blocks[0].TestGroup).To(Equal("Infrastructure provisioning"))
-			Expect(doc.Blocks[1].TestGroup).To(Equal("Infrastructure provisioning"))
+			Expect(doc.Blocks[0].TestFile).To(Equal("Infrastructure provisioning"))
+			Expect(doc.Blocks[1].TestFile).To(Equal("Infrastructure provisioning"))
 
 			// Next 3 blocks belong to "Application deployment"
-			Expect(doc.Blocks[2].TestGroup).To(Equal("Application deployment"))
-			Expect(doc.Blocks[3].TestGroup).To(Equal("Application deployment"))
-			Expect(doc.Blocks[4].TestGroup).To(Equal("Application deployment"))
+			Expect(doc.Blocks[2].TestFile).To(Equal("Application deployment"))
+			Expect(doc.Blocks[3].TestFile).To(Equal("Application deployment"))
+			Expect(doc.Blocks[4].TestFile).To(Equal("Application deployment"))
 		})
 
-		It("should clear TestGroup after test-end", func() {
+		It("should clear TestFile after test-end", func() {
 			doc, err := p.Parse("multi-step.md", content, []string{"go-e2e-step"})
 			Expect(err).ToNot(HaveOccurred())
 			// All blocks in multi-step.md are within test-start/test-end pairs,
-			// so none should have an empty TestGroup
+			// so none should have an empty TestFile
 			for _, block := range doc.Blocks {
-				Expect(block.TestGroup).ToNot(BeEmpty())
+				Expect(block.TestFile).ToNot(BeEmpty())
 			}
+		})
+
+		It("should assign StepGroup from test-step-start markers", func() {
+			doc, err := p.Parse("multi-step.md", content, []string{"go-e2e-step"})
+			Expect(err).ToNot(HaveOccurred())
+
+			// First block is in "Setup Database" step group
+			Expect(doc.Blocks[0].StepGroup).To(Equal("Setup Database"))
+			// Second block is in "Wait for Ready" step group
+			Expect(doc.Blocks[1].StepGroup).To(Equal("Wait for Ready"))
+			// Remaining blocks (Application deployment) have no step group
+			Expect(doc.Blocks[2].StepGroup).To(BeEmpty())
+			Expect(doc.Blocks[3].StepGroup).To(BeEmpty())
+			Expect(doc.Blocks[4].StepGroup).To(BeEmpty())
+		})
+
+		It("should clear StepGroup after test-step-end", func() {
+			doc, err := p.Parse("multi-step.md", content, []string{"go-e2e-step"})
+			Expect(err).ToNot(HaveOccurred())
+
+			// The blocks in "Application deployment" are after test-step-end
+			// and have no test-step-start, so StepGroup should be empty
+			Expect(doc.Blocks[2].StepGroup).To(BeEmpty())
 		})
 	})
 })

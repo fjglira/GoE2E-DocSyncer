@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
@@ -37,18 +36,6 @@ func Validate(cfg *Config) error {
 	}
 	if cfg.Output.FileSuffix != "" && !strings.HasSuffix(cfg.Output.FileSuffix, ".go") {
 		errs = append(errs, fmt.Sprintf("output.file_suffix must end with .go (got %q) — use e.g. \"_test.go\"", cfg.Output.FileSuffix))
-	}
-
-	// Validate plaintext patterns are valid regex (if set)
-	if cfg.PlaintextPatterns.BlockStart != "" {
-		if _, err := regexp.Compile(cfg.PlaintextPatterns.BlockStart); err != nil {
-			errs = append(errs, fmt.Sprintf("plaintext_patterns.block_start is not a valid regex: %v — check escaping and capture groups", err))
-		}
-	}
-	if cfg.PlaintextPatterns.BlockEnd != "" {
-		if _, err := regexp.Compile(cfg.PlaintextPatterns.BlockEnd); err != nil {
-			errs = append(errs, fmt.Sprintf("plaintext_patterns.block_end is not a valid regex: %v — check escaping and capture groups", err))
-		}
 	}
 
 	// Validate logging level

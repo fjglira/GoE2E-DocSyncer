@@ -66,37 +66,46 @@ var _ = Describe("Generator", func() {
 		// Check that output files were created
 		entries, err := os.ReadDir(outputDir)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(len(entries)).To(BeNumerically(">=", 2))
 
-		// Check file names
 		var names []string
 		for _, e := range entries {
 			names = append(names, e.Name())
 		}
-		Expect(names).To(ContainElement("generated_simple_test.go"))
-		Expect(names).To(ContainElement("generated_multi-step_test.go"))
+		// simple.md → 1 file (TestFile-based), multi-step.md → 2 files (TestFile-based)
+		Expect(names).To(ContainElement("generated_simple_deployment_test_test.go"))
+		Expect(names).To(ContainElement("generated_infrastructure_provisioning_test.go"))
+		Expect(names).To(ContainElement("generated_application_deployment_test.go"))
 	})
 
 	It("should generate valid Go code", func() {
 		err := gen.Generate(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		content, err := os.ReadFile(filepath.Join(outputDir, "generated_simple_test.go"))
+		content, err := os.ReadFile(filepath.Join(outputDir, "generated_simple_deployment_test_test.go"))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(content)).To(ContainSubstring("package e2e_test"))
 		Expect(string(content)).To(ContainSubstring("Describe"))
 		Expect(string(content)).To(ContainSubstring("It"))
 	})
 
-	It("should generate multi-step.md with 2 It blocks", func() {
+	It("should generate separate files for each test-start/end pair in multi-step.md", func() {
 		err := gen.Generate(cfg)
 		Expect(err).ToNot(HaveOccurred())
 
-		content, err := os.ReadFile(filepath.Join(outputDir, "generated_multi-step_test.go"))
+		// Infrastructure provisioning file should have 2 It blocks (from test-step-start/end)
+		content, err := os.ReadFile(filepath.Join(outputDir, "generated_infrastructure_provisioning_test.go"))
 		Expect(err).ToNot(HaveOccurred())
 		contentStr := string(content)
-		Expect(contentStr).To(ContainSubstring(`It("Infrastructure provisioning"`))
-		Expect(contentStr).To(ContainSubstring(`It("Application deployment"`))
+		Expect(contentStr).To(ContainSubstring(`It("Setup Database"`))
+		Expect(contentStr).To(ContainSubstring(`It("Wait for Ready"`))
+		Expect(contentStr).To(ContainSubstring(`Describe("Infrastructure provisioning"`))
+
+		// Application deployment file should have a single It block (no test-step-start/end)
+		content2, err := os.ReadFile(filepath.Join(outputDir, "generated_application_deployment_test.go"))
+		Expect(err).ToNot(HaveOccurred())
+		contentStr2 := string(content2)
+		Expect(contentStr2).To(ContainSubstring(`It("Application deployment"`))
+		Expect(contentStr2).To(ContainSubstring(`Describe("Application deployment"`))
 	})
 
 	It("should respect dry-run mode", func() {

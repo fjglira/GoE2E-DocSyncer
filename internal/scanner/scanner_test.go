@@ -28,12 +28,6 @@ var _ = Describe("Scanner", func() {
 		Expect(files).To(HaveLen(1))
 	})
 
-	It("should find plaintext files in testdata", func() {
-		files, err := s.Scan(filepath.Join("..", "..", "testdata", "plaintext"), []string{"*.txt"}, nil)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(files).To(HaveLen(1))
-	})
-
 	It("should return sorted file paths", func() {
 		files, err := s.Scan(filepath.Join("..", "..", "testdata", "markdown"), []string{"*.md"}, nil)
 		Expect(err).ToNot(HaveOccurred())
@@ -52,7 +46,7 @@ var _ = Describe("Scanner", func() {
 
 	It("should handle non-recursive mode", func() {
 		s = scanner.NewScanner(false)
-		files, err := s.Scan(filepath.Join("..", "..", "testdata"), []string{"*.md", "*.adoc", "*.txt", "*.yaml"}, nil)
+		files, err := s.Scan(filepath.Join("..", "..", "testdata"), []string{"*.md", "*.adoc", "*.yaml"}, nil)
 		Expect(err).ToNot(HaveOccurred())
 		// Non-recursive: only files directly in testdata (none match, all are in subdirs)
 		Expect(files).To(BeEmpty())

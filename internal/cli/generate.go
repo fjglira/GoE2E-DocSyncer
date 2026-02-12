@@ -56,17 +56,6 @@ func runGenerate(cfg *config.Config) error {
 	registry.Register(parser.NewMarkdownParser())
 	registry.Register(parser.NewAsciiDocParser())
 
-	// Create plaintext parser (fallback)
-	ptParser, err := parser.NewPlaintextParser(
-		cfg.PlaintextPatterns.BlockStart,
-		cfg.PlaintextPatterns.BlockEnd,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create plaintext parser: %w", err)
-	}
-	registry.Register(ptParser)
-	registry.SetFallback(ptParser)
-
 	// Create converter
 	conv := converter.NewConverter(&cfg.Commands)
 

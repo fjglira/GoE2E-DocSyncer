@@ -45,9 +45,33 @@ func (p *AsciiDocParser) Parse(filePath string, content []byte, tags []string) (
 	}
 
 	var currentHeading string
+	var currentTestFile string
+	var currentStepGroup string
 
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+
+		// Check for test-start / test-end comment markers
+		// AsciiDoc single-line comments start with //
+		if strings.HasPrefix(trimmed, "// test-start:") {
+			name := strings.TrimPrefix(trimmed, "// test-start:")
+			name = strings.TrimSpace(name)
+			currentTestFile = name
+			parsed.Metadata["test-start"] = name
+			continue
+		} else if strings.HasPrefix(trimmed, "// test-end") {
+			currentTestFile = ""
+			continue
+		} else if strings.HasPrefix(trimmed, "// test-step-start:") {
+			name := strings.TrimPrefix(trimmed, "// test-step-start:")
+			name = strings.TrimSpace(name)
+			currentStepGroup = name
+			continue
+		} else if strings.HasPrefix(trimmed, "// test-step-end") {
+			currentStepGroup = ""
+			continue
+		}
 
 		// Check for headings
 		if m := asciidocHeadingRe.FindStringSubmatch(line); m != nil {
@@ -101,6 +125,8 @@ func (p *AsciiDocParser) Parse(filePath string, content []byte, tags []string) (
 				LineNumber: contentStartLine,
 				Attributes: attrs,
 				Context:    currentHeading,
+				TestFile:   currentTestFile,
+				StepGroup:  currentStepGroup,
 			}
 			parsed.Blocks = append(parsed.Blocks, block)
 		}

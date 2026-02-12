@@ -8,8 +8,6 @@ input:
     - "*.md"
     - "*.adoc"
     - "*.asciidoc"
-    - "*.txt"
-    - "*.rst"
   exclude:
     - "vendor/**"
     - "node_modules/**"
@@ -43,10 +41,6 @@ tags:
     context: ["context"]
     skip_on_failure: ["skip-on-failure"]
     template: ["template"]
-
-plaintext_patterns:
-  block_start: '^\s*@begin\((\S+)(?:\s+(.*))?\)\s*$'
-  block_end: '^\s*@end\s*$'
 
 output:
   directory: "tests/e2e/generated"

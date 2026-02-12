@@ -7,12 +7,9 @@ input:
   directories:
     - "testdata/markdown"
     - "testdata/asciidoc"
-    - "testdata/plaintext"
   include:
     - "*.md"
     - "*.adoc"
-    - "*.txt"
-    - "*.rtf"
   exclude: []
   recursive: true
 
@@ -27,6 +24,12 @@ tags:
     comment_markers:
       - "<!-- test-end"
     attribute_key: "end"
+  step_start:
+    comment_markers:
+      - "<!-- test-step-start:"
+  step_end:
+    comment_markers:
+      - "<!-- test-step-end"
   attributes:
     step_name: ["step-name", "name"]
     timeout: ["timeout"]
@@ -35,10 +38,6 @@ tags:
     context: ["context"]
     skip_on_failure: ["skip-on-failure"]
     template: ["template"]
-
-plaintext_patterns:
-  block_start: '^\s*@begin\((\S+)(?:\s+(.*))?\)\s*$'
-  block_end: '^\s*@end\s*$'
 
 output:
   directory: "tests/e2e/generated"

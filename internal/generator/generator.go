@@ -130,15 +130,20 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 
 	g.log.Infof("Generated %d test spec(s)", len(allSpecs))
 
-	// Step 4: Group specs by source file so multiple test groups from one doc
-	// are rendered together in a single output file.
-	var sourceOrder []string
-	specsBySource := make(map[string][]domain.TestSpec)
+	// Step 4: Group specs by output key.
+	// If spec has TestFile set, use TestFile as the grouping key (each unique TestFile → separate output file).
+	// Otherwise, fall back to SourceFile (existing behavior).
+	var keyOrder []string
+	specsByKey := make(map[string][]domain.TestSpec)
 	for _, spec := range allSpecs {
-		if _, seen := specsBySource[spec.SourceFile]; !seen {
-			sourceOrder = append(sourceOrder, spec.SourceFile)
+		key := spec.SourceFile
+		if spec.TestFile != "" {
+			key = spec.TestFile
 		}
-		specsBySource[spec.SourceFile] = append(specsBySource[spec.SourceFile], spec)
+		if _, seen := specsByKey[key]; !seen {
+			keyOrder = append(keyOrder, key)
+		}
+		specsByKey[key] = append(specsByKey[key], spec)
 	}
 
 	// Step 5: Ensure output directory exists
@@ -151,9 +156,9 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		}
 	}
 
-	// Step 6: Render and write output, one file per source document
-	for _, sourceFile := range sourceOrder {
-		specs := specsBySource[sourceFile]
+	// Step 6: Render and write output, one file per grouping key
+	for _, key := range keyOrder {
+		specs := specsByKey[key]
 
 		var rendered string
 		var err error
@@ -166,8 +171,9 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 			return err
 		}
 
-		// Build output filename
-		outputFile := buildOutputFilename(sourceFile, cfg.Output)
+		// Build output filename — use TestFile-based name when available
+		isTestFile := specs[0].TestFile != ""
+		outputFile := buildOutputFilename(key, isTestFile, cfg.Output)
 		outputPath := filepath.Join(cfg.Output.Directory, outputFile)
 
 		if cfg.DryRun {
@@ -189,12 +195,39 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 	return nil
 }
 
-// buildOutputFilename constructs the output filename from the source file path.
-func buildOutputFilename(sourceFile string, output config.OutputConfig) string {
-	base := filepath.Base(sourceFile)
-	ext := filepath.Ext(base)
-	name := strings.TrimSuffix(base, ext)
+// buildOutputFilename constructs the output filename.
+// When isTestFile is true, the key is a TestFile name that gets sanitized
+// (lowercase, spaces→underscores, strip non-alphanum). Otherwise, the key
+// is a source file path and we use the basename without extension.
+func buildOutputFilename(key string, isTestFile bool, output config.OutputConfig) string {
+	var name string
+	if isTestFile {
+		name = sanitizeTestFileName(key)
+	} else {
+		base := filepath.Base(key)
+		ext := filepath.Ext(base)
+		name = strings.TrimSuffix(base, ext)
+	}
 	return fmt.Sprintf("%s%s%s", output.FilePrefix, name, output.FileSuffix)
+}
+
+// sanitizeTestFileName converts a test-start name into a valid filename component.
+// e.g. "Istiod HA ReplicaCount" → "istiod_ha_replicacount"
+func sanitizeTestFileName(name string) string {
+	name = strings.ToLower(name)
+	name = strings.ReplaceAll(name, " ", "_")
+	var b strings.Builder
+	for _, c := range name {
+		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' {
+			b.WriteRune(c)
+		}
+	}
+	result := b.String()
+	// Collapse multiple underscores
+	for strings.Contains(result, "__") {
+		result = strings.ReplaceAll(result, "__", "_")
+	}
+	return strings.Trim(result, "_")
 }
 
 // cleanOutputDir removes all generated files from the output directory.

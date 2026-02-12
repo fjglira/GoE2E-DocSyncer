@@ -44,7 +44,8 @@ func (p *MarkdownParser) Parse(filePath string, content []byte, tags []string) (
 
 	// Walk the AST to extract headings and code blocks
 	var currentHeading string
-	var currentTestGroup string
+	var currentTestFile string
+	var currentStepGroup string
 	err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -102,13 +103,14 @@ func (p *MarkdownParser) Parse(filePath string, content []byte, tags []string) (
 					LineNumber: lineNumber(content, node.Lines().At(0).Start),
 					Attributes: attrs,
 					Context:    currentHeading,
-					TestGroup:  currentTestGroup,
+					TestFile:   currentTestFile,
+				StepGroup:  currentStepGroup,
 				}
 				parsed.Blocks = append(parsed.Blocks, block)
 			}
 
 		case *ast.HTMLBlock:
-			// Check for test-start / test-end comments
+			// Check for test-start / test-end / test-step-start / test-step-end comments
 			var buf bytes.Buffer
 			lines := node.Lines()
 			for i := 0; i < lines.Len(); i++ {
@@ -121,11 +123,18 @@ func (p *MarkdownParser) Parse(filePath string, content []byte, tags []string) (
 				name := strings.TrimPrefix(htmlText, "<!-- test-start:")
 				name = strings.TrimSuffix(name, "-->")
 				name = strings.TrimSpace(name)
-				currentTestGroup = name
+				currentTestFile = name
 				// Keep backward-compatible metadata (stores the last seen test-start)
 				parsed.Metadata["test-start"] = name
 			} else if strings.HasPrefix(htmlText, "<!-- test-end") {
-				currentTestGroup = ""
+				currentTestFile = ""
+			} else if strings.HasPrefix(htmlText, "<!-- test-step-start:") {
+				name := strings.TrimPrefix(htmlText, "<!-- test-step-start:")
+				name = strings.TrimSuffix(name, "-->")
+				name = strings.TrimSpace(name)
+				currentStepGroup = name
+			} else if strings.HasPrefix(htmlText, "<!-- test-step-end") {
+				currentStepGroup = ""
 			}
 		}
 

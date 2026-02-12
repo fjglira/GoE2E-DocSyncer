@@ -10,14 +10,13 @@ import (
 
 // Config is the top-level configuration struct.
 type Config struct {
-	Input             InputConfig            `yaml:"input"`
-	Tags              TagConfig              `yaml:"tags"`
-	PlaintextPatterns PlaintextPatternsConfig `yaml:"plaintext_patterns"`
-	Output            OutputConfig           `yaml:"output"`
-	Templates         TemplateConfig         `yaml:"templates"`
-	Commands          CommandConfig          `yaml:"commands"`
-	Logging           LoggingConfig          `yaml:"logging"`
-	DryRun            bool                   `yaml:"dry_run"`
+	Input     InputConfig    `yaml:"input"`
+	Tags      TagConfig      `yaml:"tags"`
+	Output    OutputConfig   `yaml:"output"`
+	Templates TemplateConfig `yaml:"templates"`
+	Commands  CommandConfig  `yaml:"commands"`
+	Logging   LoggingConfig  `yaml:"logging"`
+	DryRun    bool           `yaml:"dry_run"`
 }
 
 type InputConfig struct {
@@ -31,18 +30,14 @@ type TagConfig struct {
 	StepTags   []string            `yaml:"step_tags"`
 	TestStart  TestMarkerConfig    `yaml:"test_start"`
 	TestEnd    TestMarkerConfig    `yaml:"test_end"`
+	StepStart  TestMarkerConfig    `yaml:"step_start"`
+	StepEnd    TestMarkerConfig    `yaml:"step_end"`
 	Attributes map[string][]string `yaml:"attributes"`
 }
 
 type TestMarkerConfig struct {
 	CommentMarkers []string `yaml:"comment_markers"`
 	AttributeKey   string   `yaml:"attribute_key"`
-}
-
-type PlaintextPatternsConfig struct {
-	BlockStart string `yaml:"block_start"`
-	BlockEnd   string `yaml:"block_end"`
-	LinePrefix string `yaml:"line_prefix"`
 }
 
 type OutputConfig struct {

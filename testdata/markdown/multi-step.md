@@ -10,17 +10,25 @@ Make sure you have `kubectl` and `helm` configured.
 
 <!-- test-start: Infrastructure provisioning -->
 
+<!-- test-step-start: Setup Database -->
+
 ### Deploy Database
 
 ```go-e2e-step step-name="Install PostgreSQL via Helm"
 helm install postgres bitnami/postgresql --set auth.postgresPassword=testpass
 ```
 
+<!-- test-step-end -->
+
+<!-- test-step-start: Wait for Ready -->
+
 ### Wait for Database
 
 ```go-e2e-step timeout=120s
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=postgresql --timeout=180s
 ```
+
+<!-- test-step-end -->
 
 <!-- test-end -->
 
