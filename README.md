@@ -1,6 +1,16 @@
 # GoE2E-DocSyncer
 
-A Go CLI tool that reads documentation files (Markdown, AsciiDoc) and generates executable [Ginkgo](https://onsi.github.io/ginkgo/)/[Gomega](https://onsi.github.io/gomega/) E2E test files.
+**Stop writing E2E tests by hand. Write good documentation instead — and let the tests generate themselves.**
+
+Most projects maintain documentation and E2E tests separately, leading to duplicated effort and inevitable drift: the docs say one thing, the tests verify another, and neither stays in sync. GoE2E-DocSyncer eliminates this problem. You tag the shell commands already in your documentation, and the tool turns them into production-ready [Ginkgo](https://onsi.github.io/ginkgo/)/[Gomega](https://onsi.github.io/gomega/) test suites.
+
+The result: your documentation **is** your test source. When the docs are updated, a single `docsyncer generate` regenerates the tests to match. Your team is incentivized to keep documentation accurate because it directly drives what gets tested.
+
+All you need to do is:
+
+1. Tag the commands in your existing Markdown or AsciiDoc docs
+2. Add your environment setup to the auto-generated `suite_test.go` (cluster login, namespace creation, etc.)
+3. Run `go test` — just like any other Go test suite
 
 Everything is driven by a single YAML configuration file (`docsyncer.yaml`). The tool makes no assumptions about your project structure.
 
