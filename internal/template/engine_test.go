@@ -16,7 +16,7 @@ var _ = Describe("TemplateEngine", func() {
 
 	BeforeEach(func() {
 		var err error
-		engine, err = tmpl.NewEngine(filepath.Join("..", "..", "templates"), "ginkgo_default")
+		engine, err = tmpl.NewEngine(filepath.Join("..", "..", "templates"), "ginkgo_default", "")
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -178,8 +178,84 @@ var _ = Describe("TemplateEngine", func() {
 		})
 	})
 
-	It("should return error for nonexistent template directory", func() {
-		_, err := tmpl.NewEngine("nonexistent_dir", "default")
-		Expect(err).To(HaveOccurred())
+	Describe("BuildTag", func() {
+		It("should include build tag when configured", func() {
+			engine, err := tmpl.NewEngine(filepath.Join("..", "..", "templates"), "ginkgo_default", "e2e")
+			Expect(err).ToNot(HaveOccurred())
+
+			spec := domain.TestSpec{
+				SourceFile:    "test.md",
+				SourceType:    "markdown",
+				TestName:      "Tag test",
+				DescribeBlock: "Feature",
+				Steps: []domain.TestStep{
+					{
+						Name:   "Step",
+						GoCode: `cmd := exec.Command("echo")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+					},
+				},
+			}
+
+			result, err := engine.Render(spec, "e2e_test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(HavePrefix("//go:build e2e\n"))
+		})
+
+		It("should omit build tag when empty", func() {
+			spec := domain.TestSpec{
+				SourceFile:    "test.md",
+				SourceType:    "markdown",
+				TestName:      "No tag test",
+				DescribeBlock: "Feature",
+				Steps: []domain.TestStep{
+					{
+						Name:   "Step",
+						GoCode: `cmd := exec.Command("echo")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+					},
+				},
+			}
+
+			result, err := engine.Render(spec, "e2e_test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).ToNot(ContainSubstring("//go:build"))
+		})
+	})
+
+	Describe("Embedded template fallback", func() {
+		It("should fall back to embedded template for nonexistent directory", func() {
+			engine, err := tmpl.NewEngine("nonexistent_dir", "ginkgo_default", "")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(engine.ListTemplates()).To(ContainElement("ginkgo_default"))
+		})
+
+		It("should fall back to embedded template when directory is empty string", func() {
+			engine, err := tmpl.NewEngine("", "ginkgo_default", "")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(engine.ListTemplates()).To(ContainElement("ginkgo_default"))
+		})
+
+		It("should render using embedded template", func() {
+			engine, err := tmpl.NewEngine("", "ginkgo_default", "")
+			Expect(err).ToNot(HaveOccurred())
+
+			spec := domain.TestSpec{
+				SourceFile:    "test.adoc",
+				SourceType:    "asciidoc",
+				TestName:      "Embedded test",
+				DescribeBlock: "Embedded Feature",
+				Steps: []domain.TestStep{
+					{
+						Name:   "Run command",
+						GoCode: `cmd := exec.Command("echo", "hello")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+					},
+				},
+			}
+
+			result, err := engine.Render(spec, "e2e_test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(ContainSubstring("package e2e_test"))
+			Expect(result).To(ContainSubstring(`Describe("Embedded Feature"`))
+			Expect(result).To(ContainSubstring(`It("Embedded test"`))
+		})
 	})
 })

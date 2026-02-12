@@ -2,6 +2,8 @@ package template
 
 import (
 	"bytes"
+	"embed"
+	"errors"
 	"fmt"
 	"go/format"
 	"os"
@@ -11,6 +13,9 @@ import (
 
 	"github.com/frherrer/GoE2E-DocSyncer/internal/domain"
 )
+
+//go:embed embedded/ginkgo_default.tmpl
+var embeddedDefaultTemplate embed.FS
 
 // TemplateEngine renders TestSpec into Go source code strings.
 type TemplateEngine interface {
@@ -28,6 +33,7 @@ type testCase struct {
 // templateData is the struct passed to templates.
 type templateData struct {
 	PackageName   string
+	BuildTag      string
 	SourceFile    string
 	SourceType    string
 	DescribeBlock string
@@ -43,14 +49,17 @@ type DefaultEngine struct {
 	templates   map[string]*template.Template
 	defaultName string
 	templateDir string
+	buildTag    string
 }
 
 // NewEngine creates a new template engine, loading templates from the given directory.
-func NewEngine(templateDir string, defaultTemplate string) (*DefaultEngine, error) {
+// The buildTag parameter, when non-empty, adds a //go:build constraint to generated files.
+func NewEngine(templateDir string, defaultTemplate string, buildTag string) (*DefaultEngine, error) {
 	engine := &DefaultEngine{
 		templates:   make(map[string]*template.Template),
 		defaultName: defaultTemplate,
 		templateDir: templateDir,
+		buildTag:    buildTag,
 	}
 
 	if err := engine.loadTemplates(); err != nil {
@@ -61,16 +70,27 @@ func NewEngine(templateDir string, defaultTemplate string) (*DefaultEngine, erro
 }
 
 // loadTemplates reads all .tmpl files from the template directory.
+// If the template directory is empty or does not exist, it falls back
+// to the embedded default template, enabling usage via go run without
+// a local templates directory.
 func (e *DefaultEngine) loadTemplates() error {
+	funcMap := CustomFuncMap()
+
+	// Fall back to embedded template when no directory is configured or it doesn't exist.
+	if e.templateDir == "" {
+		return e.loadEmbeddedTemplate(funcMap)
+	}
+
 	entries, err := os.ReadDir(e.templateDir)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return e.loadEmbeddedTemplate(funcMap)
+		}
 		return domain.NewErrorWithSuggestion("template", e.templateDir, 0,
 			"failed to read template directory",
 			"ensure the templates directory exists and contains .tmpl files — check templates.directory in docsyncer.yaml",
 			err)
 	}
-
-	funcMap := CustomFuncMap()
 
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".tmpl") {
@@ -105,6 +125,22 @@ func (e *DefaultEngine) loadTemplates() error {
 	return nil
 }
 
+// loadEmbeddedTemplate loads the built-in ginkgo_default template from the embedded filesystem.
+func (e *DefaultEngine) loadEmbeddedTemplate(funcMap template.FuncMap) error {
+	content, err := embeddedDefaultTemplate.ReadFile("embedded/ginkgo_default.tmpl")
+	if err != nil {
+		return domain.NewError("template", "embedded/ginkgo_default.tmpl", 0, "failed to read embedded template", err)
+	}
+
+	tmpl, err := template.New("ginkgo_default").Funcs(funcMap).Parse(string(content))
+	if err != nil {
+		return domain.NewError("template", "embedded/ginkgo_default.tmpl", 0, "failed to parse embedded template", err)
+	}
+
+	e.templates["ginkgo_default"] = tmpl
+	return nil
+}
+
 // Render renders a TestSpec into a formatted Go source string.
 func (e *DefaultEngine) Render(spec domain.TestSpec, packageName string) (string, error) {
 	// Select template
@@ -132,6 +168,7 @@ func (e *DefaultEngine) Render(spec domain.TestSpec, packageName string) (string
 
 	data := templateData{
 		PackageName:   packageName,
+		BuildTag:      e.buildTag,
 		SourceFile:    spec.SourceFile,
 		SourceType:    spec.SourceType,
 		DescribeBlock: spec.DescribeBlock,
@@ -203,6 +240,7 @@ func (e *DefaultEngine) RenderMulti(specs []domain.TestSpec, packageName string)
 
 	data := templateData{
 		PackageName:   packageName,
+		BuildTag:      e.buildTag,
 		SourceFile:    first.SourceFile,
 		SourceType:    first.SourceType,
 		DescribeBlock: first.DescribeBlock,

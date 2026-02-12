@@ -60,7 +60,7 @@ func runGenerate(cfg *config.Config) error {
 	conv := converter.NewConverter(&cfg.Commands)
 
 	// Create template engine
-	engine, err := tmpl.NewEngine(cfg.Templates.Directory, cfg.Templates.Default)
+	engine, err := tmpl.NewEngine(cfg.Templates.Directory, cfg.Templates.Default, cfg.Output.BuildTag)
 	if err != nil {
 		return fmt.Errorf("failed to create template engine: %w", err)
 	}

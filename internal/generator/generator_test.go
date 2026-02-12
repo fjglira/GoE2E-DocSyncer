@@ -49,7 +49,7 @@ var _ = Describe("Generator", func() {
 		registry := parser.NewRegistry()
 		registry.Register(parser.NewMarkdownParser())
 		conv := converter.NewConverter(&cfg.Commands)
-		engine, engineErr := tmpl.NewEngine(cfg.Templates.Directory, cfg.Templates.Default)
+		engine, engineErr := tmpl.NewEngine(cfg.Templates.Directory, cfg.Templates.Default, cfg.Output.BuildTag)
 		Expect(engineErr).ToNot(HaveOccurred())
 
 		gen = generator.NewGenerator(s, registry, conv, engine, log)
