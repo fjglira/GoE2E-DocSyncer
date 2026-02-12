@@ -175,7 +175,12 @@ output:
   package_name: "e2e_generated"
   file_prefix: "generated_"
   file_suffix: "_test.go"
-  clean_before_generate: true  # Wipes old generated files first
+  build_tag: "e2e"               # adds //go:build e2e to generated files (optional)
+  clean_before_generate: true     # Wipes old generated files first
+
+templates:
+  directory: ""                   # empty = use embedded default template
+  default: "ginkgo_default"
 
 commands:
   default_timeout: "30s"
@@ -183,7 +188,18 @@ commands:
     - "rm -rf /"
 ```
 
-### 2.5 Generate tests
+### 2.5 Using `go run` (no install needed)
+
+You can run docsyncer directly from another project without installing it. The embedded default template means no local `templates/` directory is required:
+
+```bash
+go run github.com/frherrer/GoE2E-DocSyncer/cmd/docsyncer@latest generate \
+    --config docsyncer.yaml --verbose
+```
+
+Set `templates.directory: ""` in your config to use the embedded template.
+
+### 2.6 Generate tests
 
 ```bash
 # Preview first:
@@ -193,7 +209,7 @@ docsyncer generate --dry-run --verbose
 docsyncer generate --verbose
 ```
 
-### 2.6 Run the generated tests
+### 2.7 Run the generated tests
 
 The generated files are standard Ginkgo test files. Run them with:
 
@@ -212,7 +228,7 @@ go test ./tests/e2e/generated/ -v
 
 These are E2E tests — they are meant to run against a real environment.
 
-### 2.7 Integrate into your workflow
+### 2.8 Integrate into your workflow
 
 Add to your `Makefile`:
 
@@ -274,7 +290,8 @@ kubectl get pods
 
 ### "template not found"
 
-- Check that `templates.directory` points to a directory with `.tmpl` files
+- If using a custom templates directory, check that `templates.directory` points to a directory with `.tmpl` files
+- Set `templates.directory` to `""` (empty) to use the built-in embedded template — this is recommended when running via `go run`
 - The `templates.default` value should match a filename (without `.tmpl` extension)
 
 ### "command blocked by security policy"

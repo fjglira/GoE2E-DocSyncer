@@ -13,6 +13,8 @@ Everything is driven by a single YAML configuration file (`docsyncer.yaml`). The
 - **Step grouping** — `<!-- test-step-start: NAME -->` / `<!-- test-step-end -->` markers group steps into separate `It()` blocks within a test file
 - **Smart code generation** — Shell commands are converted to `exec.Command` / `exec.CommandContext` with timeout and exit code handling
 - **Security validation** — Configurable blocked-command patterns prevent dangerous commands in generated tests
+- **Embedded default template** — Works with `go run` out of the box; no local `templates/` directory needed
+- **Configurable build tags** — Add `//go:build` constraints to generated files via `output.build_tag`
 - **go/format compliant** — All generated code passes `gofmt`
 - **Dry-run mode** — Preview generated output without writing files
 
@@ -174,6 +176,7 @@ output:
   package_name: "e2e_generated"
   file_prefix: "generated_"
   file_suffix: "_test.go"
+  build_tag: "e2e"              # adds //go:build e2e to generated files (optional)
 ```
 
 ### Key Configuration Sections
@@ -182,8 +185,8 @@ output:
 |---------|---------|
 | `input` | Directories to scan, include/exclude patterns, recursive flag |
 | `tags` | Step tags, test-start/end markers, step-start/end markers, attribute name mappings |
-| `output` | Output directory, file naming, package name, clean-before-generate |
-| `templates` | Template directory, default template, override support |
+| `output` | Output directory, file naming, package name, build tag, clean-before-generate |
+| `templates` | Template directory, default template, override support. Leave `directory` empty to use the embedded default |
 | `commands` | Default timeout, expected exit code, blocked patterns, shell config |
 | `logging` | Log level (`debug`, `info`, `warn`, `error`) |
 
@@ -260,9 +263,10 @@ GoE2E-DocSyncer/
 │   ├── parser/             # Parser interface, registry, format parsers
 │   ├── converter/          # Block → TestStep conversion, Go code generation
 │   ├── template/           # Template engine with custom functions
+│   │   └── embedded/       # Embedded default template (for go run support)
 │   ├── generator/          # Pipeline orchestrator
 │   └── cli/                # Cobra CLI commands
-├── templates/              # Default Ginkgo template
+├── templates/              # Default Ginkgo template (also embedded at build time)
 ├── testdata/               # Test fixtures (markdown, asciidoc)
 ├── docsyncer.yaml          # Example configuration
 └── PLAN.md                 # Architecture and design document
