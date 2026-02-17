@@ -19,7 +19,7 @@ import (
 // Source type: {{.SourceType}}
 // DO NOT EDIT — this file is regenerated on every run.
 
-var _ = Describe("{{.DescribeBlock}}", func() {
+var _ = Describe("{{.DescribeBlock}}", {{if .Labels}}Label({{labelArgs .Labels}}), {{end}}func() {
 	{{- if .ContextBlock}}
 	Context("{{.ContextBlock}}", func() {
 	{{- end}}

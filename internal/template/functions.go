@@ -34,5 +34,12 @@ func CustomFuncMap() template.FuncMap {
 			// This is a helper for templates; actual parsing happens at runtime
 			return s
 		},
+		"labelArgs": func(labels []string) string {
+			quoted := make([]string, len(labels))
+			for i, l := range labels {
+				quoted[i] = `"` + l + `"`
+			}
+			return strings.Join(quoted, ", ")
+		},
 	}
 }

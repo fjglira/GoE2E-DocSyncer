@@ -127,6 +127,11 @@ func (g *DefaultGenerator) Generate(cfg *config.Config) error {
 		return nil
 	}
 
+	// Populate labels on each spec: default labels + DescribeBlock name (deduplicated)
+	for i := range allSpecs {
+		allSpecs[i].Labels = buildLabels(cfg.Output.DefaultLabels, allSpecs[i].DescribeBlock)
+	}
+
 	g.log.Info("Generated test spec(s)", "count", len(allSpecs))
 
 	// Step 4: Group specs by output key.
@@ -309,6 +314,22 @@ func packageNameToTestFunc(pkg string) string {
 		b.WriteString(strings.ToUpper(part[:1]) + strings.ToLower(part[1:]))
 	}
 	return b.String()
+}
+
+// buildLabels creates a deduplicated label list from default labels plus the test name.
+func buildLabels(defaults []string, testName string) []string {
+	seen := make(map[string]bool, len(defaults)+1)
+	var labels []string
+	for _, l := range defaults {
+		if !seen[l] {
+			seen[l] = true
+			labels = append(labels, l)
+		}
+	}
+	if testName != "" && !seen[testName] {
+		labels = append(labels, testName)
+	}
+	return labels
 }
 
 // cleanOutputDir removes all generated files from the output directory.

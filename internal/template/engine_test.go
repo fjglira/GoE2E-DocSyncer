@@ -221,6 +221,83 @@ var _ = Describe("TemplateEngine", func() {
 		})
 	})
 
+	Describe("Label rendering", func() {
+		It("should render Label() on Describe when labels are present", func() {
+			spec := domain.TestSpec{
+				SourceFile:    "test.md",
+				SourceType:    "markdown",
+				TestName:      "My test",
+				DescribeBlock: "Redis deployment E2E",
+				Labels:        []string{"documentation", "Redis deployment E2E"},
+				Steps: []domain.TestStep{
+					{
+						Name:   "Step 1",
+						GoCode: `cmd := exec.Command("echo", "hello")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+					},
+				},
+			}
+
+			result, err := engine.Render(spec, "e2e_test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(ContainSubstring(`Label("documentation", "Redis deployment E2E")`))
+		})
+
+		It("should not render Label() when labels are empty", func() {
+			spec := domain.TestSpec{
+				SourceFile:    "test.md",
+				SourceType:    "markdown",
+				TestName:      "My test",
+				DescribeBlock: "Feature",
+				Labels:        nil,
+				Steps: []domain.TestStep{
+					{
+						Name:   "Step 1",
+						GoCode: `cmd := exec.Command("echo", "hello")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+					},
+				},
+			}
+
+			result, err := engine.Render(spec, "e2e_test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).ToNot(ContainSubstring("Label("))
+		})
+
+		It("should render Label() in RenderMulti", func() {
+			specs := []domain.TestSpec{
+				{
+					SourceFile:    "multi.md",
+					SourceType:    "markdown",
+					TestName:      "Group A",
+					DescribeBlock: "My Feature",
+					Labels:        []string{"documentation", "My Feature"},
+					Steps: []domain.TestStep{
+						{
+							Name:   "Step A1",
+							GoCode: `cmd := exec.Command("echo", "a1")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+						},
+					},
+				},
+				{
+					SourceFile:    "multi.md",
+					SourceType:    "markdown",
+					TestName:      "Group B",
+					DescribeBlock: "My Feature",
+					Labels:        []string{"documentation", "My Feature"},
+					Steps: []domain.TestStep{
+						{
+							Name:   "Step B1",
+							GoCode: `cmd := exec.Command("echo", "b1")` + "\n" + `output, err := cmd.CombinedOutput()` + "\n" + `Expect(err).ToNot(HaveOccurred(), string(output))`,
+						},
+					},
+				},
+			}
+
+			result, err := engine.RenderMulti(specs, "e2e_test")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(ContainSubstring(`Label("documentation", "My Feature")`))
+		})
+	})
+
 	Describe("Embedded template fallback", func() {
 		It("should fall back to embedded template for nonexistent directory", func() {
 			engine, err := tmpl.NewEngine("nonexistent_dir", "ginkgo_default", "")

@@ -60,6 +60,7 @@ func DefaultConfig() *Config {
 			FileSuffix:          "_test.go",
 			PackageName:         "e2e_generated",
 			CleanBeforeGenerate: true,
+			DefaultLabels:       []string{"documentation"},
 		},
 		Templates: TemplateConfig{
 			Directory:     "templates",

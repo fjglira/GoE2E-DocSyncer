@@ -226,6 +226,27 @@ ginkgo ./tests/e2e/generated/
 go test ./tests/e2e/generated/ -v
 ```
 
+**Filtering tests by label:**
+
+Generated tests include Ginkgo `Label()` decorators. Every `Describe` block gets the configured default labels (default: `"documentation"`) plus the test name. Use `--label-filter` to run subsets:
+
+```bash
+# Run all documentation-generated tests
+ginkgo --label-filter="documentation" ./tests/e2e/generated/
+
+# Run a specific test by name
+ginkgo --label-filter="Smoke test" ./tests/e2e/generated/
+```
+
+You can customize the default labels in `docsyncer.yaml`:
+
+```yaml
+output:
+  default_labels:
+    - "documentation"
+    - "e2e"
+```
+
 **Important:** The generated tests execute real shell commands (`kubectl`, `helm`, `curl`, etc.), so they require:
 - A running Kubernetes cluster (for kubectl/helm commands)
 - Network access (for curl commands)

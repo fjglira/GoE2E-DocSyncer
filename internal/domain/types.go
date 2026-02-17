@@ -36,7 +36,8 @@ type TestSpec struct {
 	ContextBlock  string
 	Steps         []TestStep
 	TemplateName  string
-	TestFile      string // controls output file naming (empty = use SourceFile)
+	TestFile      string   // controls output file naming (empty = use SourceFile)
+	Labels        []string // Ginkgo Label() decorators for test filtering
 }
 
 // TestStep is a single executable step within a test.

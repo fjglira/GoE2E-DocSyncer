@@ -42,6 +42,7 @@ type templateData struct {
 	Steps         []domain.TestStep
 	Tests         []testCase
 	NeedsContext  bool
+	Labels        []string
 }
 
 // DefaultEngine implements TemplateEngine.
@@ -176,6 +177,7 @@ func (e *DefaultEngine) Render(spec domain.TestSpec, packageName string) (string
 		TestName:      spec.TestName,
 		Steps:         spec.Steps,
 		NeedsContext:  needsContext,
+		Labels:        spec.Labels,
 	}
 
 	var buf bytes.Buffer
@@ -249,6 +251,7 @@ func (e *DefaultEngine) RenderMulti(specs []domain.TestSpec, packageName string)
 		Steps:         first.Steps,
 		Tests:         tests,
 		NeedsContext:  needsContext,
+		Labels:        first.Labels,
 	}
 
 	var buf bytes.Buffer

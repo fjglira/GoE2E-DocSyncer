@@ -88,6 +88,26 @@ var _ = Describe("Generator", func() {
 		Expect(string(content)).To(ContainSubstring("It"))
 	})
 
+	It("should include Ginkgo labels on Describe blocks", func() {
+		err := gen.Generate(cfg)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Check simple deployment test has default label and test name label
+		content, err := os.ReadFile(filepath.Join(outputDir, "generated_simple_deployment_test_test.go"))
+		Expect(err).ToNot(HaveOccurred())
+		contentStr := string(content)
+		Expect(contentStr).To(ContainSubstring(`Label(`))
+		Expect(contentStr).To(ContainSubstring(`"documentation"`))
+
+		// Check infrastructure provisioning test has its name as a label
+		content2, err := os.ReadFile(filepath.Join(outputDir, "generated_infrastructure_provisioning_test.go"))
+		Expect(err).ToNot(HaveOccurred())
+		contentStr2 := string(content2)
+		Expect(contentStr2).To(ContainSubstring(`Label(`))
+		Expect(contentStr2).To(ContainSubstring(`"documentation"`))
+		Expect(contentStr2).To(ContainSubstring(`"Infrastructure provisioning"`))
+	})
+
 	It("should generate separate files for each test-start/end pair in multi-step.md", func() {
 		err := gen.Generate(cfg)
 		Expect(err).ToNot(HaveOccurred())

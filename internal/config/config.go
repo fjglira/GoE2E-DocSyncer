@@ -41,12 +41,13 @@ type TestMarkerConfig struct {
 }
 
 type OutputConfig struct {
-	Directory           string `yaml:"directory"`
-	FilePrefix          string `yaml:"file_prefix"`
-	FileSuffix          string `yaml:"file_suffix"`
-	PackageName         string `yaml:"package_name"`
-	BuildTag            string `yaml:"build_tag"`
-	CleanBeforeGenerate bool   `yaml:"clean_before_generate"`
+	Directory           string   `yaml:"directory"`
+	FilePrefix          string   `yaml:"file_prefix"`
+	FileSuffix          string   `yaml:"file_suffix"`
+	PackageName         string   `yaml:"package_name"`
+	BuildTag            string   `yaml:"build_tag"`
+	CleanBeforeGenerate bool     `yaml:"clean_before_generate"`
+	DefaultLabels       []string `yaml:"default_labels"`
 }
 
 type TemplateConfig struct {

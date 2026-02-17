@@ -25,6 +25,7 @@ Everything is driven by a single YAML configuration file (`docsyncer.yaml`). The
 - **Security validation** — Configurable blocked-command patterns prevent dangerous commands in generated tests
 - **Auto-generated `suite_test.go`** — Creates the Ginkgo bootstrap file automatically; only generated once so you can add your own `BeforeSuite`/`AfterSuite` setup without it being overwritten
 - **Embedded default template** — Works with `go run` out of the box; no local `templates/` directory needed
+- **Ginkgo Label support** — Generated tests include `Label()` decorators for filtering with `ginkgo --label-filter`; configurable default labels via `output.default_labels`
 - **Configurable build tags** — Add `//go:build` constraints to generated files via `output.build_tag`
 - **go/format compliant** — All generated code passes `gofmt`
 - **Dry-run mode** — Preview generated output without writing files
@@ -188,6 +189,8 @@ output:
   file_prefix: "generated_"
   file_suffix: "_test.go"
   build_tag: "e2e"              # adds //go:build e2e to generated files (optional)
+  default_labels:               # Ginkgo labels added to every Describe block (optional)
+    - "documentation"
 ```
 
 ### Key Configuration Sections
@@ -243,7 +246,7 @@ import (
 // Source type: markdown
 // DO NOT EDIT — this file is regenerated on every run.
 
-var _ = Describe("Redis deployment E2E", func() {
+var _ = Describe("Redis deployment E2E", Label("documentation", "Redis deployment E2E"), func() {
     It("Redis deployment E2E", func() {
         {
             By("Deploy Redis via Helm")
